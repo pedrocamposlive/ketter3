@@ -135,12 +135,12 @@ class LargeFileTransferTest:
 
                 # Check if completed or failed
                 if status == "completed":
-                    print(f"[{datetime.now().isoformat()}] ✓ TRANSFER COMPLETED")
+                    print(f"[{datetime.now().isoformat()}]  TRANSFER COMPLETED")
                     return self.verify_transfer()
 
                 elif status == "failed":
                     error = transfer.get("error_message", "Unknown error")
-                    print(f"[{datetime.now().isoformat()}] ✗ TRANSFER FAILED")
+                    print(f"[{datetime.now().isoformat()}]  TRANSFER FAILED")
                     print(f"  Error: {error}")
                     return False
 
@@ -177,7 +177,7 @@ class LargeFileTransferTest:
         checksums = response.json()
 
         if len(checksums["items"]) != 3:
-            print(f"  ✗ ERROR: Expected 3 checksums, got {len(checksums['items'])}")
+            print(f"   ERROR: Expected 3 checksums, got {len(checksums['items'])}")
             return False
 
         checksum_map = {c["checksum_type"]: c["checksum_value"] for c in checksums["items"]}
@@ -190,9 +190,9 @@ class LargeFileTransferTest:
         print(f"  FINAL:       {final_hash}")
 
         if source_hash == dest_hash == final_hash:
-            print(f"  ✓ All checksums match!")
+            print(f"   All checksums match!")
         else:
-            print(f"  ✗ ERROR: Checksums do not match!")
+            print(f"   ERROR: Checksums do not match!")
             return False
 
         print()
@@ -211,22 +211,22 @@ class LargeFileTransferTest:
             report_filename = f"transfer_{self.transfer_id}_report.pdf"
             with open(report_filename, 'wb') as f:
                 f.write(response.content)
-            print(f"  ✓ PDF report saved: {report_filename}")
+            print(f"   PDF report saved: {report_filename}")
             print(f"  Report size: {self.format_bytes(len(response.content))}")
         else:
-            print(f"  ✗ Failed to generate PDF report")
+            print(f"   Failed to generate PDF report")
 
         print()
         print("=" * 80)
-        print("TRANSFER VERIFICATION: SUCCESS ✓")
+        print("TRANSFER VERIFICATION: SUCCESS ")
         print("=" * 80)
         print(f"Transfer ID: #{self.transfer_id}")
         print(f"File size: {self.format_bytes(transfer['file_size'])}")
         print(f"Total time: {self.format_duration(elapsed)}")
         print(f"Average rate: {self.format_bytes(transfer['bytes_transferred'] / elapsed)}/s")
-        print(f"Checksums: VERIFIED ✓")
+        print(f"Checksums: VERIFIED ")
         print(f"Audit trail: {logs['total']} events")
-        print(f"PDF report: Generated ✓")
+        print(f"PDF report: Generated ")
         print("=" * 80)
 
         return True
@@ -247,14 +247,14 @@ class LargeFileTransferTest:
             success = self.monitor_transfer(poll_interval)
 
             if success:
-                print("\n✓ TEST PASSED: Large file transfer successful with zero errors")
+                print("\n TEST PASSED: Large file transfer successful with zero errors")
                 return 0
             else:
-                print("\n✗ TEST FAILED: Transfer did not complete successfully")
+                print("\n TEST FAILED: Transfer did not complete successfully")
                 return 1
 
         except Exception as e:
-            print(f"\n✗ TEST FAILED: {str(e)}")
+            print(f"\n TEST FAILED: {str(e)}")
             import traceback
             traceback.print_exc()
             return 1

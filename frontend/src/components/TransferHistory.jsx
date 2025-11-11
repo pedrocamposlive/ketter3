@@ -64,8 +64,8 @@ function TransferHistory() {
 
   async function handleCancel(transferId, status) {
     const message = status === 'copying' || status === 'pending' || status === 'verifying'
-      ? `⏸️ Cancelar transferência #${transferId}? Isto vai parar o trabalho em progresso.`
-      : `❌ Operação não suportada para status: ${status}`
+      ? `⏸ Cancelar transferência #${transferId}? Isto vai parar o trabalho em progresso.`
+      : ` Operação não suportada para status: ${status}`
 
     if (!confirm(message)) {
       return
@@ -84,7 +84,7 @@ function TransferHistory() {
     // Se está em progresso, sugerir cancelar primeiro
     if (status === 'copying' || status === 'pending' || status === 'verifying') {
       const confirmCancel = confirm(
-        `⚠️ Esta transferência ainda está em progresso!\n\n` +
+        ` Esta transferência ainda está em progresso!\n\n` +
         `Opções:\n` +
         `- OK: Cancelar E deletar (recomendado)\n` +
         `- Cancelar: Voltar\n\n` +

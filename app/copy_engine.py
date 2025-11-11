@@ -402,7 +402,7 @@ def transfer_file_with_verification(
         db.commit()
 
         log_event(db, transfer_id, AuditEventType.CHECKSUM_VERIFIED,
-                 "Triple SHA-256 verification PASSED ✓",
+                 "Triple SHA-256 verification PASSED ",
                  {"checksum": source_hash})
 
         # Week 5: If folder transfer, unzip at destination

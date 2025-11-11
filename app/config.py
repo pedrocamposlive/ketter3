@@ -71,7 +71,7 @@ class KetterConfig:
             volumes_data = config.get('volumes', [])
             self.volumes = [VolumeConfig(vol) for vol in volumes_data]
 
-            print(f"✓ Loaded config: {self.server_name} ({len(self.volumes)} volumes)")
+            print(f" Loaded config: {self.server_name} ({len(self.volumes)} volumes)")
 
         except Exception as e:
             print(f"Error loading config: {e}")

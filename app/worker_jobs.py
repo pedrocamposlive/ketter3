@@ -75,7 +75,7 @@ def transfer_file_job(transfer_id: int) -> dict:
             "bytes_transferred": transfer.bytes_transferred
         }
 
-        print(f"[RQ Job {job.id}] Transfer {transfer_id} completed ✓")
+        print(f"[RQ Job {job.id}] Transfer {transfer_id} completed ")
         return result
 
     except CopyEngineError as e:
@@ -246,7 +246,7 @@ def watch_and_transfer_job(transfer_id: int) -> dict:
             watch_duration = int((transfer.watch_triggered_at - transfer.watch_started_at).total_seconds())
             result["watch_duration"] = watch_duration
 
-        print(f"[RQ Job {job.id}] Transfer {transfer_id} completed ✓")
+        print(f"[RQ Job {job.id}] Transfer {transfer_id} completed ")
         return result
 
     except WatchFolderError as e:
@@ -411,17 +411,17 @@ def continuous_watch_job(transfer_id: int) -> dict:
                                         shutil.copytree(source_item, dest_item)
 
                                         log_msg = f"Pasta copiada: {new_item_name} → {dest_item}"
-                                        print(f"[RQ Job {job.id}] ✓ Copied folder: {new_item_name}")
+                                        print(f"[RQ Job {job.id}]  Copied folder: {new_item_name}")
 
                                         # If MOVE mode, delete the source folder after successful copy
                                         if operation_mode == 'move':
                                             try:
                                                 shutil.rmtree(source_item)
                                                 log_msg = f"Pasta copiada e DELETADA: {new_item_name} (MOVE mode)"
-                                                print(f"[RQ Job {job.id}] ✓ Moved folder: {new_item_name}")
+                                                print(f"[RQ Job {job.id}]  Moved folder: {new_item_name}")
                                             except Exception as delete_error:
                                                 log_msg = f"Pasta copiada mas FALHA ao deletar: {new_item_name} - {str(delete_error)}"
-                                                print(f"[RQ Job {job.id}] ⚠ Copied folder but failed to delete: {new_item_name}")
+                                                print(f"[RQ Job {job.id}]  Copied folder but failed to delete: {new_item_name}")
 
                                         # Mark item as processed
                                         processed_files.append(new_item_name)
@@ -441,7 +441,7 @@ def continuous_watch_job(transfer_id: int) -> dict:
 
                                     except Exception as folder_error:
                                         error_msg = f"Failed to process folder {new_item_name}: {str(folder_error)}"
-                                        print(f"[RQ Job {job.id}] ✗ {error_msg}")
+                                        print(f"[RQ Job {job.id}]  {error_msg}")
                                         log = AuditLog(
                                             transfer_id=transfer_id,
                                             event_type=AuditEventType.ERROR,
@@ -482,13 +482,13 @@ def continuous_watch_job(transfer_id: int) -> dict:
                                         try:
                                             os.remove(source_item)
                                             log_msg = f"Arquivo transferido e DELETADO: {new_item_name} (MOVE mode)"
-                                            print(f"[RQ Job {job.id}] ✓ Moved: {new_item_name}")
+                                            print(f"[RQ Job {job.id}]  Moved: {new_item_name}")
                                         except Exception as delete_error:
                                             log_msg = f"Arquivo transferido mas FALHA ao deletar: {new_item_name} - {str(delete_error)}"
-                                            print(f"[RQ Job {job.id}] ⚠ Transferred but failed to delete: {new_item_name}")
+                                            print(f"[RQ Job {job.id}]  Transferred but failed to delete: {new_item_name}")
                                     else:
                                         log_msg = f"Arquivo transferido: {new_item_name} (COPY mode)"
-                                        print(f"[RQ Job {job.id}] ✓ Copied: {new_item_name}")
+                                        print(f"[RQ Job {job.id}]  Copied: {new_item_name}")
 
                                     # Mark file as processed
                                     processed_files.append(new_item_name)
@@ -509,7 +509,7 @@ def continuous_watch_job(transfer_id: int) -> dict:
                             except CopyEngineError as e:
                                 # Log error but continue monitoring
                                 error_msg = f"Failed to transfer {new_item_name}: {str(e)}"
-                                print(f"[RQ Job {job.id}] ✗ {error_msg}")
+                                print(f"[RQ Job {job.id}]  {error_msg}")
 
                                 log = AuditLog(
                                     transfer_id=transfer_id,
@@ -521,7 +521,7 @@ def continuous_watch_job(transfer_id: int) -> dict:
                             except Exception as e:
                                 # Catch all other errors
                                 error_msg = f"Unexpected error processing {new_item_name}: {str(e)}"
-                                print(f"[RQ Job {job.id}] ✗ {error_msg}")
+                                print(f"[RQ Job {job.id}]  {error_msg}")
 
                                 log = AuditLog(
                                     transfer_id=transfer_id,

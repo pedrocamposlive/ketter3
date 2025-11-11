@@ -73,12 +73,12 @@ function TransferProgress() {
             <div className="badge-group">
               {transfer.is_folder_transfer && (
                 <span className="badge badge-folder" title="Folder transfer with ZIP Smart">
-                  📦 Folder ({transfer.file_count || '?'} files)
+                   Folder ({transfer.file_count || '?'} files)
                 </span>
               )}
               {transfer.watch_mode_enabled && (
                 <span className="badge badge-watch" title={`Watching for ${transfer.settle_time_seconds}s settle time`}>
-                  👁️ Watching ({transfer.settle_time_seconds}s)
+                   Watching ({transfer.settle_time_seconds}s)
                 </span>
               )}
               <span className={`status-badge status-${transfer.status}`}>

@@ -225,12 +225,12 @@ def generate_transfer_report(
     if source_hash and dest_hash:
         if source_hash.checksum_value == dest_hash.checksum_value:
             verification_status = Paragraph(
-                '<b><font color="green">✓ VERIFICATION PASSED: Checksums match exactly</font></b>',
+                '<b><font color="green"> VERIFICATION PASSED: Checksums match exactly</font></b>',
                 normal_style
             )
         else:
             verification_status = Paragraph(
-                '<b><font color="red">✗ VERIFICATION FAILED: Checksums do not match</font></b>',
+                '<b><font color="red"> VERIFICATION FAILED: Checksums do not match</font></b>',
                 normal_style
             )
         elements.append(Spacer(1, 0.1*inch))

@@ -94,7 +94,7 @@ function ActiveTransfers({ onActiveTransfersChange }) {
   if (transfers.length === 0) {
     return (
       <div className="empty-state">
-        <p>✓ No active transfers</p>
+        <p> No active transfers</p>
         <p className="hint">All transfers are completed or idle.</p>
       </div>
     )
@@ -117,17 +117,17 @@ function ActiveTransfers({ onActiveTransfersChange }) {
                   </span>
                   {transfer.is_continuous_watch && (
                     <span className="badge badge-continuous">
-                      🔄 Continuous Watch
+                       Continuous Watch
                     </span>
                   )}
                   {transfer.operation_mode === 'move' && (
                     <span className="badge badge-move" title="MOVE mode - deletes originals">
-                      ↔️ MOVE
+                      ↔ MOVE
                     </span>
                   )}
                   {transfer.operation_mode === 'copy' && (
                     <span className="badge badge-copy" title="COPY mode - keeps originals">
-                      📋 COPY
+                       COPY
                     </span>
                   )}
                 </div>
@@ -158,7 +158,7 @@ function ActiveTransfers({ onActiveTransfersChange }) {
                 className="btn btn-secondary"
                 onClick={() => showLogs(transfer.id)}
               >
-                📋 Logs
+                 Logs
               </button>
 
               {transfer.is_continuous_watch && (
@@ -167,7 +167,7 @@ function ActiveTransfers({ onActiveTransfersChange }) {
                   onClick={() => handleStopWatch(transfer.id)}
                   title="Stop continuous monitoring"
                 >
-                  ⏹️ Stop Watch
+                  ⏹ Stop Watch
                 </button>
               )}
 
@@ -176,7 +176,7 @@ function ActiveTransfers({ onActiveTransfersChange }) {
                 onClick={() => handleDeleteTransfer(transfer.id, transfer.is_continuous_watch)}
                 title={transfer.is_continuous_watch ? 'Cancel and delete continuous watch' : 'Delete transfer'}
               >
-                🗑️ Delete
+                 Delete
               </button>
             </div>
 

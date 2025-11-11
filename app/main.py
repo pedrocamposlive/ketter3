@@ -119,9 +119,9 @@ async def startup_event():
     """
     Executado ao iniciar a aplicação
     """
-    print("🚀 Ketter 3.0 API iniciando...")
-    print(f"📝 Ambiente: {os.getenv('APP_ENV', 'development')}")
-    print(f"🔧 Log Level: {os.getenv('LOG_LEVEL', 'INFO')}")
+    print(" Ketter 3.0 API iniciando...")
+    print(f" Ambiente: {os.getenv('APP_ENV', 'development')}")
+    print(f" Log Level: {os.getenv('LOG_LEVEL', 'INFO')}")
 
 # Shutdown event
 @app.on_event("shutdown")
@@ -129,4 +129,4 @@ async def shutdown_event():
     """
     Executado ao desligar a aplicação
     """
-    print("👋 Ketter 3.0 API encerrando...")
+    print(" Ketter 3.0 API encerrando...")

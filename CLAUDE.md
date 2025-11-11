@@ -13,20 +13,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The system follows a clean separation of concerns:
 
 ```
-┌─────────┐
-│ Frontend│ React (single main screen)
-│  (Web)  │
-└────┬────┘
-     │ REST
-┌────▼────┐
-│   API   │ FastAPI (simple endpoints)
-└────┬────┘
-     │
-     ├──────┐
-┌────▼─┐ ┌─▼──┐
-│Worker│ │ DB │ PostgreSQL
-│ (RQ) │ └────┘
-└──────┘
+
+ Frontend React (single main screen)
+  (Web)  
+
+      REST
+
+   API    FastAPI (simple endpoints)
+
+     
+     
+ 
+Worker  DB  PostgreSQL
+ (RQ)  
+
 ```
 
 **Components:**
@@ -65,13 +65,13 @@ The system follows a clean separation of concerns:
 6. Clear operator-friendly UI
 
 **Explicitly NOT in MVP:**
-- ❌ Automatic watchfolders
-- ❌ Intelligent packaging
-- ❌ Schedulers/Cron
-- ❌ WebSocket real-time updates
-- ❌ Grafana/Prometheus monitoring
-- ❌ Multi-user support
-- ❌ Configurable policies
+-  Automatic watchfolders
+-  Intelligent packaging
+-  Schedulers/Cron
+-  WebSocket real-time updates
+-  Grafana/Prometheus monitoring
+-  Multi-user support
+-  Configurable policies
 
 ## Development Timeline (4 Weeks)
 
