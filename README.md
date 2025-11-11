@@ -9,20 +9,20 @@ Reliable file transfer system designed for media production workflows. Handles l
 ## Features
 
 ### Core Features (MVP)
-- ✅ **Triple SHA-256 Verification** - Source, Destination, Final verification
-- ✅ **Smart Folder Handling** - Auto-ZIP folders (STORE mode, no compression)
-- ✅ **Watch Mode** - Wait for folder to stabilize before transfer
-- ✅ **Professional PDF Reports** - Complete audit trail and checksums
-- ✅ **30-Day Transfer History** - Full audit logs and metrics
-- ✅ **Modern Dark UI** - Monochromatic professional interface
+-  **Triple SHA-256 Verification** - Source, Destination, Final verification
+-  **Smart Folder Handling** - Auto-ZIP folders (STORE mode, no compression)
+-  **Watch Mode** - Wait for folder to stabilize before transfer
+-  **Professional PDF Reports** - Complete audit trail and checksums
+-  **30-Day Transfer History** - Full audit logs and metrics
+-  **Modern Dark UI** - Monochromatic professional interface
 
 ### Technical Features
-- ✅ **Direct Filesystem Access** - No Docker volume mapping needed
-- ✅ **Cross-Platform** - Native support for macOS and Windows
-- ✅ **Any Volume Support** - Nexis, EditShare, SANs, network drives, local storage
-- ✅ **Async Processing** - RQ worker for background transfers
-- ✅ **PostgreSQL Database** - ACID compliance for reliability
-- ✅ **RESTful API** - FastAPI with auto-documentation
+-  **Direct Filesystem Access** - No Docker volume mapping needed
+-  **Cross-Platform** - Native support for macOS and Windows
+-  **Any Volume Support** - Nexis, EditShare, SANs, network drives, local storage
+-  **Async Processing** - RQ worker for background transfers
+-  **PostgreSQL Database** - ACID compliance for reliability
+-  **RESTful API** - FastAPI with auto-documentation
 
 ---
 
@@ -120,10 +120,10 @@ Access: **http://localhost:3000**
 ### Filesystem Access
 
 **Ketter has direct access to:**
-- ✅ All mounted volumes (Mac: `/Volumes/*`, Windows: `D:\`, `Y:\`, etc.)
-- ✅ Network drives (automatically detected when mounted)
-- ✅ User directories
-- ✅ Any path the user has read/write permissions to
+-  All mounted volumes (Mac: `/Volumes/*`, Windows: `D:\`, `Y:\`, etc.)
+-  Network drives (automatically detected when mounted)
+-  User directories
+-  Any path the user has read/write permissions to
 
 **No configuration needed** - if you can see it in Finder/Explorer, Ketter can access it.
 
@@ -236,7 +236,7 @@ http://localhost:8000  # API
 
 ## Project Status
 
-**✅ Production Ready**
+** Production Ready**
 
 - **Core System:** 100% complete (SHA-256, copy engine, PDF reports)
 - **Week 5 Features:** ZIP Smart + Watch Mode implemented
@@ -245,11 +245,11 @@ http://localhost:8000  # API
 - **Documentation:** Complete
 
 **Recent Updates (2025-11-05):**
-- ✅ Monochromatic dark theme
-- ✅ Free path input (any volume)
-- ✅ Volume validation removed
-- ✅ Native installers (Mac + Windows)
-- ✅ Direct filesystem access
+-  Monochromatic dark theme
+-  Free path input (any volume)
+-  Volume validation removed
+-  Native installers (Mac + Windows)
+-  Direct filesystem access
 
 ---
 
