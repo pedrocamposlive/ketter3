@@ -1,0 +1,224 @@
+pedrocampos@MB-PEDRO scripts % ./bootstrap_ketter_mac.sh 
+Script localizado em: /Users/pedrocampos/Desktop/Ketter3/scripts
+Raiz do projeto detectada em: /Users/pedrocampos/Desktop/Ketter3
+Mudando para a raiz...
+====================================================
+1. Verificando Homebrew
+====================================================
+==> Updating Homebrew...
+Already up-to-date.
+====================================================
+2. Instalando PostgreSQL 16
+====================================================
+Stopping `postgresql@16`... (might take a while)
+==> Successfully stopped `postgresql@16` (label: homebrew.mxcl.postgresql@16)
+Warning: postgresql@16 16.11 is already installed and up-to-date.
+To reinstall 16.11, run:
+  brew reinstall postgresql@16
+==> Successfully started `postgresql@16` (label: homebrew.mxcl.postgresql@16)
+Aguardando PostgreSQL iniciar...
+Postgres está pronto.
+====================================================
+2A. Verificando role postgres
+====================================================
+Role postgres já existe.
+====================================================
+2B. Criando ketter_user
+====================================================
+====================================================
+2C. Criando banco ketter_db
+====================================================
+ketter_db já existe.
+====================================================
+3. Instalando Redis
+====================================================
+Warning: redis 8.2.3 is already installed and up-to-date.
+To reinstall 8.2.3, run:
+  brew reinstall redis
+Service `redis` already started, use `brew services restart redis` to restart.
+====================================================
+4. Preparando ambiente Python
+====================================================
+Requirement already satisfied: pip in /opt/homebrew/lib/python3.11/site-packages (25.3)
+Requirement already satisfied: wheel in /opt/homebrew/lib/python3.11/site-packages (0.45.1)
+Requirement already satisfied: setuptools in /opt/homebrew/lib/python3.11/site-packages (80.9.0)
+Requirement already satisfied: fastapi==0.109.0 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 7)) (0.109.0)
+Requirement already satisfied: uvicorn==0.27.0 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (0.27.0)
+Requirement already satisfied: pydantic==2.5.3 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 9)) (2.5.3)
+Requirement already satisfied: pydantic-settings==2.1.0 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 10)) (2.1.0)
+Requirement already satisfied: sqlalchemy==2.0.25 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 15)) (2.0.25)
+Requirement already satisfied: psycopg2-binary==2.9.9 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 16)) (2.9.9)
+Requirement already satisfied: alembic==1.13.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 17)) (1.13.1)
+Requirement already satisfied: redis==5.0.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 22)) (5.0.1)
+Requirement already satisfied: rq==1.16.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 23)) (1.16.1)
+Requirement already satisfied: aiofiles==23.2.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 29)) (23.2.1)
+Requirement already satisfied: tqdm==4.66.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 30)) (4.66.1)
+Requirement already satisfied: reportlab==4.0.9 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 35)) (4.0.9)
+Requirement already satisfied: pytest==7.4.4 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 40)) (7.4.4)
+Requirement already satisfied: pytest-asyncio==0.23.3 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 41)) (0.23.3)
+Requirement already satisfied: pytest-cov==4.1.0 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 42)) (4.1.0)
+Requirement already satisfied: httpx==0.26.0 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 43)) (0.26.0)
+Requirement already satisfied: requests==2.31.0 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 44)) (2.31.0)
+Requirement already satisfied: python-dotenv==1.0.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 49)) (1.0.1)
+Requirement already satisfied: python-multipart==0.0.6 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 50)) (0.0.6)
+Requirement already satisfied: pyyaml==6.0.1 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 51)) (6.0.1)
+Requirement already satisfied: python-json-logger==2.0.7 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 56)) (2.0.7)
+Requirement already satisfied: types-redis==4.6.0.20240106 in /opt/homebrew/lib/python3.11/site-packages (from -r requirements.txt (line 61)) (4.6.0.20240106)
+Requirement already satisfied: starlette<0.36.0,>=0.35.0 in /opt/homebrew/lib/python3.11/site-packages (from fastapi==0.109.0->-r requirements.txt (line 7)) (0.35.1)
+Requirement already satisfied: typing-extensions>=4.8.0 in /opt/homebrew/lib/python3.11/site-packages (from fastapi==0.109.0->-r requirements.txt (line 7)) (4.15.0)
+Requirement already satisfied: annotated-types>=0.4.0 in /opt/homebrew/lib/python3.11/site-packages (from pydantic==2.5.3->-r requirements.txt (line 9)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.14.6 in /opt/homebrew/lib/python3.11/site-packages (from pydantic==2.5.3->-r requirements.txt (line 9)) (2.14.6)
+Requirement already satisfied: click>=7.0 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn==0.27.0->uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (8.3.0)
+Requirement already satisfied: h11>=0.8 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn==0.27.0->uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (0.16.0)
+Requirement already satisfied: Mako in /opt/homebrew/lib/python3.11/site-packages (from alembic==1.13.1->-r requirements.txt (line 17)) (1.3.10)
+Requirement already satisfied: pillow>=9.0.0 in /opt/homebrew/lib/python3.11/site-packages (from reportlab==4.0.9->-r requirements.txt (line 35)) (12.0.0)
+Requirement already satisfied: chardet in /opt/homebrew/lib/python3.11/site-packages (from reportlab==4.0.9->-r requirements.txt (line 35)) (5.2.0)
+Requirement already satisfied: iniconfig in /opt/homebrew/lib/python3.11/site-packages (from pytest==7.4.4->-r requirements.txt (line 40)) (2.3.0)
+Requirement already satisfied: packaging in /opt/homebrew/lib/python3.11/site-packages (from pytest==7.4.4->-r requirements.txt (line 40)) (25.0)
+Requirement already satisfied: pluggy<2.0,>=0.12 in /opt/homebrew/lib/python3.11/site-packages (from pytest==7.4.4->-r requirements.txt (line 40)) (1.6.0)
+Requirement already satisfied: coverage>=5.2.1 in /opt/homebrew/lib/python3.11/site-packages (from coverage[toml]>=5.2.1->pytest-cov==4.1.0->-r requirements.txt (line 42)) (7.11.0)
+Requirement already satisfied: anyio in /opt/homebrew/lib/python3.11/site-packages (from httpx==0.26.0->-r requirements.txt (line 43)) (4.11.0)
+Requirement already satisfied: certifi in /opt/homebrew/lib/python3.11/site-packages (from httpx==0.26.0->-r requirements.txt (line 43)) (2025.10.5)
+Requirement already satisfied: httpcore==1.* in /opt/homebrew/lib/python3.11/site-packages (from httpx==0.26.0->-r requirements.txt (line 43)) (1.0.9)
+Requirement already satisfied: idna in /opt/homebrew/lib/python3.11/site-packages (from httpx==0.26.0->-r requirements.txt (line 43)) (3.11)
+Requirement already satisfied: sniffio in /opt/homebrew/lib/python3.11/site-packages (from httpx==0.26.0->-r requirements.txt (line 43)) (1.3.1)
+Requirement already satisfied: charset-normalizer<4,>=2 in /opt/homebrew/lib/python3.11/site-packages (from requests==2.31.0->-r requirements.txt (line 44)) (3.4.4)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /opt/homebrew/lib/python3.11/site-packages (from requests==2.31.0->-r requirements.txt (line 44)) (2.5.0)
+Requirement already satisfied: types-pyOpenSSL in /opt/homebrew/lib/python3.11/site-packages (from types-redis==4.6.0.20240106->-r requirements.txt (line 61)) (24.1.0.20240722)
+Requirement already satisfied: cryptography>=35.0.0 in /opt/homebrew/lib/python3.11/site-packages (from types-redis==4.6.0.20240106->-r requirements.txt (line 61)) (46.0.3)
+Requirement already satisfied: httptools>=0.5.0 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (0.7.1)
+Requirement already satisfied: uvloop!=0.15.0,!=0.15.1,>=0.14.0 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (0.22.1)
+Requirement already satisfied: watchfiles>=0.13 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (1.1.1)
+Requirement already satisfied: websockets>=10.4 in /opt/homebrew/lib/python3.11/site-packages (from uvicorn[standard]==0.27.0->-r requirements.txt (line 8)) (15.0.1)
+Requirement already satisfied: cffi>=2.0.0 in /opt/homebrew/lib/python3.11/site-packages (from cryptography>=35.0.0->types-redis==4.6.0.20240106->-r requirements.txt (line 61)) (2.0.0)
+Requirement already satisfied: pycparser in /opt/homebrew/lib/python3.11/site-packages (from cffi>=2.0.0->cryptography>=35.0.0->types-redis==4.6.0.20240106->-r requirements.txt (line 61)) (2.23)
+Requirement already satisfied: MarkupSafe>=0.9.2 in /opt/homebrew/lib/python3.11/site-packages (from Mako->alembic==1.13.1->-r requirements.txt (line 17)) (3.0.3)
+Requirement already satisfied: types-cffi in /opt/homebrew/lib/python3.11/site-packages (from types-pyOpenSSL->types-redis==4.6.0.20240106->-r requirements.txt (line 61)) (1.17.0.20250915)
+Requirement already satisfied: types-setuptools in /opt/homebrew/lib/python3.11/site-packages (from types-cffi->types-pyOpenSSL->types-redis==4.6.0.20240106->-r requirements.txt (line 61)) (80.9.0.20250822)
+====================================================
+5. Criando .env
+====================================================
+====================================================
+6. Executando migrações Alembic
+====================================================
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3293, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 452, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1269, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 284, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 393, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 678, in __init__
+    self.__connect()
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 902, in __connect
+    with util.safe_reraise():
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 898, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 645, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 616, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "ketter" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/bin/alembic", line 7, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/config.py", line 641, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/config.py", line 631, in main
+    self.run_cmd(cfg, options)
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/config.py", line 608, in run_cmd
+    fn(
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/command.py", line 403, in upgrade
+    script.run_env()
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/script/base.py", line 583, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/util/pyfiles.py", line 95, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/alembic/util/pyfiles.py", line 113, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/Users/pedrocampos/Desktop/Ketter3/alembic/env.py", line 86, in <module>
+    run_migrations_online()
+  File "/Users/pedrocampos/Desktop/Ketter3/alembic/env.py", line 73, in run_migrations_online
+    with connectable.connect() as connection:
+         ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3269, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2431, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3293, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 452, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1269, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 284, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 393, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 678, in __init__
+    self.__connect()
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 902, in __connect
+    with util.safe_reraise():
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 898, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 645, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 616, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "ketter" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
