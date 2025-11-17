@@ -1,0 +1,50 @@
+# Ketter 3.0 - Volume Configuration
+# Configure volumes available for transfers on this server
+
+server:
+  name: "Mac-Studio-01"
+  location: "Finalização"
+
+volumes:
+  # Network volumes (mounted via Avid, EditShare, etc)
+  - path: /Volumes/Nexis
+    alias: "Nexis - Produção"
+    type: network
+    description: "Avid Nexis production storage"
+    check_mounted: true
+
+  - path: /Volumes/StorageX
+    alias: "StorageX - Projetos"
+    type: network
+    description: "Network storage for projects"
+    check_mounted: true
+
+  # Local volumes
+  - path: /Users/Shared/Transfers
+    alias: "Local - Transfers"
+    type: local
+    description: "Local shared transfer folder"
+    check_mounted: false
+
+  - path: /tmp
+    alias: "Temporário"
+    type: local
+    description: "Temporary files"
+    check_mounted: false
+
+  - path: /private/var
+    alias: "macOS Temp"
+    type: local
+    description: "macOS temporary directories (support for automated tests)"
+    check_mounted: false
+
+# Notes:
+# - path: Absolute path as seen inside Docker container
+# - alias: User-friendly name shown in UI
+# - type: network or local (informational)
+# - check_mounted: Validate if path exists before allowing transfer
+#
+# For Docker volume mapping, edit docker-compose.yml:
+#   volumes:
+#     - /Volumes/Nexis:/Volumes/Nexis:cached
+#     - /Volumes/StorageX:/Volumes/StorageX:cached

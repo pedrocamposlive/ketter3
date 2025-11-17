@@ -1,0 +1,29 @@
+{
+  "screenshots": [
+    {
+      "file": "dashboard.png",
+      "title": "Dashboard · Manus Release",
+      "description": "KPI grid, throughput, donut, and alerts panels in the Manus theme."
+    },
+    {
+      "file": "transfers.png",
+      "title": "Transfers · Manus Release",
+      "description": "Create transfer wizard, queue snapshot, progress stream, and history cards."
+    },
+    {
+      "file": "audit.png",
+      "title": "Audit · Manus Release",
+      "description": "Audit timeline with severity markers and logs viewer."
+    },
+    {
+      "file": "system-health.png",
+      "title": "System Health · Manus Release",
+      "description": "System health grid, alerts, and health history feed."
+    },
+    {
+      "file": "settings.png",
+      "title": "Settings · Manus Release",
+      "description": "Enterprise settings fieldsets with volume controls and defaults."
+    }
+  ]
+}

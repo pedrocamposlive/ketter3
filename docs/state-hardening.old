@@ -1,0 +1,84 @@
+# Ketter — Hardening TPN/MPA State  
+Versão 1.0  
+Status de tarefas e auditoria do desenvolvimento
+
+---
+
+## 1. Sanitização de Paths
+- [ ] Implementar validação de inode pré/pós  
+- [ ] Bloquear symlinks mesmo após movimentações  
+- [ ] Detectar unicode tricks  
+- [ ] Negar executáveis e dotfiles  
+- [ ] Bloquear renomeio malicioso enquanto MOVE/COPY  
+
+---
+
+## 2. Whitelist de Volumes
+- [ ] Validar owner e grupo  
+- [ ] Bloquear bind mounts não autorizados  
+- [ ] Validar permissões 0o770  
+- [ ] Validar mountpoint real (no symlink)  
+
+---
+
+## 3. Hash Chain
+- [ ] Hash pré + manifest  
+- [ ] Hash pós + manifest  
+- [ ] Comparação atomic  
+- [ ] JSON audit entry com cadeia completa  
+- [ ] Assinatura de manifest  
+
+---
+
+## 4. Logs Forenses
+- [ ] Formato JSON padronizado  
+- [ ] Timestamp UTC  
+- [ ] Campos obrigatórios (event_class, vlan_source, vlan_target, automation_id)  
+- [ ] Rotação diária  
+- [ ] Validação de schema  
+
+---
+
+## 5. Atomicidade e Rollback
+- [ ] Escrever destino via write barrier  
+- [ ] Validar partial write simulation  
+- [ ] rollback atomic  
+- [ ] retry com jitter  
+- [ ] circuit-breaker seguro  
+
+---
+
+## 6. Multi-Hop Mode
+- [ ] Definição de zonas (Ingest, Dub, QC, Delivery)  
+- [ ] Restrição de cada automation node  
+- [ ] Implementar fluxo multi-hop  
+- [ ] Garantir isolamento por VLAN  
+
+---
+
+## 7. Air-Gap Mode
+- [ ] Execução offline  
+- [ ] staging local  
+- [ ] checkpointed jobs  
+- [ ] validação de conteúdo  
+
+---
+
+## 8. Hardening Test Suite
+- [ ] Criar tests/hardening/test_path_sanitization.py  
+- [ ] Criar test_volume_whitelist.py  
+- [ ] Criar test_hash_chain.py  
+- [ ] Criar test_audit_trail.py  
+- [ ] Criar test_atomicity.py  
+- [ ] Integrar no CI  
+- [ ] Confirmar suites verdes  
+
+---
+
+## 9. Finalização
+- [ ] PDF Report Hardening  
+- [ ] Auditoria Final  
+- [ ] Full CI Final  
+- [ ] Marcar hardening como concluído  
+
+

@@ -1,0 +1,89 @@
+state-ui.md — Ketter 3.0 UI State
+
+Este documento lista todas as tarefas atômicas necessárias para implementar a interface gráfica do Ketter 3.0 conforme definido no ui-blueprint.md.
+
+Cada tarefa deve ser executada exatamente da seguinte forma pelo Codex CLI:
+
+Ler STRATEGY_PROMPT.md e ui-blueprint.md antes de cada ação
+
+Criar, mover ou modificar arquivos completos
+
+Rodar build (npm run build ou npm run dev --check)
+
+Corrigir erros até build ficar verde
+
+Rodar testes se existirem
+
+Atualizar state-ui.md marcando a tarefa como concluída
+
+Realizar commit atômico
+
+1. Preparação Inicial
+[ ] 1.1 Criar diretório /ui com Vite (React + TS)
+[ ] 1.2 Configurar TailwindCSS
+[ ] 1.3 Instalar e configurar shadcn/ui
+[ ] 1.4 Criar estrutura básica de pastas conforme ui-blueprint
+[ ] 1.5 Criar configuração de tema (theme/index.ts)
+[ ] 1.6 Criar tokens de cores (palette.ts)
+[ ] 1.7 Criar layout global (AppLayout)
+2. Componentes Fundamentais (UI Base)
+[ ] 2.1 Criar padrão
+[ ] 2.2 Criar
+[ ] 2.3 Criar
+[ ] 2.4 Criar
+[ ] 2.5 Criar
+[ ] 2.6 Criar
+[ ] 2.7 Criar para tabelas grandes
+3. Dashboard
+[ ] 3.1 Implementar cards principais (ativos / concluídos / falhas / hash / zip smart)
+[ ] 3.2 Implementar gráfico Throughput (Recharts)
+[ ] 3.3 Implementar gráfico MOVE × COPY (donut)
+[ ] 3.4 Implementar painel lateral de logs em tempo real
+[ ] 3.5 Integrar Dashboard com API do Ketter (/transfers, /health)
+4. Transfers Page
+[ ] 4.1 Criar página Transfers
+[ ] 4.2 Criar tabela de listagem de transferências
+[ ] 4.3 Implementar filtros (status, VLAN, período)
+[ ] 4.4 Criar botão "Ver detalhes"
+[ ] 4.5 Integrar com API /transfers
+5. Transfer Details Page
+[ ] 5.1 Criar página de detalhes
+[ ] 5.2 Exibir origem/destino
+[ ] 5.3 Exibir hash SHA-256
+[ ] 5.4 Exibir ZIP Smart + metadata
+[ ] 5.5 Exibir timeline de logs
+[ ] 5.6 Criar botão "Exportar PDF"
+[ ] 5.7 Integrar com API /transfers/{id}
+[ ] 5.8 Integrar com /transfers/{id}/report
+6. Audit Logs Page
+[ ] 6.1 Criar timeline visual dos eventos
+[ ] 6.2 Criar filtros (sucesso, falha, rollback, mismatch, alertas)
+[ ] 6.3 Criar exportação de logs JSON
+[ ] 6.4 Integrar com API de auditoria
+7. VLAN Map Page
+[ ] 7.1 Criar visualização INGEST → DUBLAGEM → QC → DELIVERY
+[ ] 7.2 Indicadores de status (online/offline)
+[ ] 7.3 Integração opcional com API /health
+8. Settings Page
+[ ] 8.1 Criar página de configuração geral
+[ ] 8.2 Gerenciar Allowed Volumes
+[ ] 8.3 Gerenciar Whitelist
+[ ] 8.4 Configurar ZIP Threshold
+[ ] 8.5 Configurar Logging Level
+[ ] 8.6 Integrar com config.yaml futuro
+9. API Layer
+[ ] 9.1 Criar services/api.ts
+[ ] 9.2 Implementar wrappers GET/POST
+[ ] 9.3 Tipos (Typescript interfaces)
+[ ] 9.4 Testar chamadas reais usando backend ativo
+10. Testes e Build
+[ ] 10.1 Gerar testes básicos de UI (Vitest)
+[ ] 10.2 Garantir build sem erros
+[ ] 10.3 Criar script npm para CI
+11. Finalização
+[ ] 11.1 Criar README da UI
+[ ] 11.2 Criar documentação em docs/ui.md
+[ ] 11.3 Criar script de dev (ui-dev.sh)
+[ ] 11.4 Validar integração UI ↔ Backend (E2E manual)
+[ ] 11.5 Atualizar blueprint se necessário
+[ ] 11.6 Marcar UI v1 como concluída

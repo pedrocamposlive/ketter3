@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --ketter-color-bg: #0C0E12;
+  --ketter-color-panel: #12151C;
+  --ketter-color-border: #1A1D25;
+  --ketter-color-border-strong: #1F232E;
+  --ketter-color-muted: #A5AAB2;
+  --ketter-color-text: #E8ECF0;
+  --ketter-color-text-light: #F6F8FF;
+  --ketter-color-primary: #3A8BFF;
+  --ketter-color-primary-dark: #1F5EB5;
+  --ketter-color-accent: #3A8BFF;
+  --ketter-color-accent-strong: #36C6F0;
+  --ketter-color-success: #4CAF50;
+  --ketter-color-warning: #D0A036;
+  --ketter-color-danger: #D84545;
+  --ketter-color-info: #3A8BFF;
+  --ketter-color-gray-100: #f5f7fb;
+  --ketter-color-gray-200: #e1e6f2;
+  --ketter-color-gray-300: #aaaebc;
+  --ketter-color-gray-400: #7b8093;
+  --ketter-color-gray-500: #4d5465;
+  --ketter-color-gray-600: #2b2f3b;
+  --ketter-font-primary: 'Inter', 'IBM Plex Sans', system-ui, sans-serif;
+  --ketter-font-secondary: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  --ketter-font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+  --ketter-font-weight-light: 300;
+  --ketter-font-weight-normal: 400;
+  --ketter-font-weight-medium: 500;
+  --ketter-font-weight-bold: 600;
+  --ketter-tracking-tight: -0.01em;
+  --ketter-tracking-normal: 0.02em;
+  --ketter-tracking-loose: 0.18em;
+  --ketter-size-radius: 10px;
+  --ketter-size-gap: 1.5rem;
+  --ketter-shadow-low: 0 8px 20px rgba(4, 7, 15, 0.4);
+  --ketter-shadow-high: 0 24px 45px rgba(4, 7, 15, 0.65);
+  --ketter-spacing-xs: 4px;
+  --ketter-spacing-sm: 8px;
+  --ketter-spacing-md: 16px;
+  --ketter-spacing-lg: 24px;
+  --ketter-spacing-xl: 32px;
+  --ketter-spacing-xxl: 48px;
+  --ketter-spacing-xxxl: 64px;
+  --ketter-space-xs: var(--ketter-spacing-xs);
+  --ketter-space-sm: var(--ketter-spacing-sm);
+  --ketter-space-md: var(--ketter-spacing-md);
+  --ketter-space-lg: var(--ketter-spacing-lg);
+  --ketter-space-xl: var(--ketter-spacing-xl);
+  --ketter-space-xxl: var(--ketter-spacing-xxl);
+  --ketter-space-xxxl: var(--ketter-spacing-xxxl);
+  --ketter-breakpoint-sm: 768px;
+  --ketter-breakpoint-md: 1024px;
+  --ketter-breakpoint-lg: 1440px;
+  --ketter-breakpoint-xl: 1920px;
+  --ketter-transition-fast: 0.15s ease-out;
+  --ketter-transition-base: 0.3s ease;
+  --ketter-transition-slow: 0.45s ease;
+  --ketter-transition-focus: 0.25s ease-out;
+  --ketter-transition-transform: 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --ketter-card-radius: 14px;
+  --ketter-radius-sm: 6px;
+  --ketter-radius-md: 10px;
+  --ketter-radius-lg: 18px;
+  --ketter-radius-pill: 999px;
+  --ketter-shadow-1: 0 4px 10px rgba(6, 8, 20, 0.5);
+  --ketter-shadow-2: 0 12px 25px rgba(6, 8, 20, 0.65);
+  --ketter-shadow-3: 0 20px 40px rgba(4, 6, 18, 0.75);
+  --ketter-shadow-focus: 0 0 0 2px rgba(58, 139, 255, 0.4);
+  --ketter-card-shadow: var(--ketter-shadow-2);
+  --ketter-card-hover-shadow: var(--ketter-shadow-3);
+  --ketter-card-hover-translate: translateY(-2px);
+  --ketter-grid-columns: 12;
+  --ketter-grid-gap: var(--ketter-spacing-lg);
+  --ketter-ui-container-width: 1200px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--ketter-font-primary);
+  background: var(--ketter-color-bg);
+  color: var(--ketter-color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ketter-color-bg);
+  color: var(--ketter-color-text);
+}
+
+.header {
+  background: linear-gradient(180deg, var(--ketter-color-panel) 0%, var(--ketter-color-bg) 100%);
+  border-bottom: 1px solid var(--ketter-color-border);
+  color: var(--ketter-color-text);
+  padding: 24px var(--ketter-spacing-lg);
+  box-shadow: var(--ketter-shadow-low);
+}
+
+.layout-body {
+  display: flex;
+  flex: 1;
+  gap: var(--ketter-spacing-lg);
+  padding: var(--ketter-spacing-lg);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ketter-spacing-lg);
+}
+
+.sidebar {
+  background: var(--ketter-color-panel);
+  border: 1px solid var(--ketter-color-border);
+  border-radius: var(--ketter-size-radius);
+  padding: calc(var(--ketter-spacing-md)) var(--ketter-spacing-md);
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ketter-spacing-md);
+}
+
+.footer {
+  background: var(--ketter-color-panel);
+  border-top: 1px solid var(--ketter-color-border);
+  padding: var(--ketter-spacing-md) var(--ketter-spacing-lg);
+  text-align: center;
+}

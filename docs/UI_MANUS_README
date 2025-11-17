@@ -1,0 +1,50 @@
+## UI Manus Release
+
+A versão 3.0 da interface do Ketter adota integralmente o design system Manus, incluindo:
+
+### Design System
+- Paleta Manus (primary, dark, grayscale)
+- Tipografia Manus (font tokens + tracking scale)
+- Tokens globais de spacing, radius, shadow e transitions
+- Layout enterprise com `.ui-container` e grid responsivo
+- Reestruturação completa dos componentes React
+
+### Páginas Refatoradas
+- **Dashboard** – KPIs unificados, cards Manus, charts otimizados
+- **Transfers** – cards revisados, grid consistente, painel lateral refinado
+- **Audit** – timeline Manus, tipografia hierárquica, seção estável
+- **System Health** – métricas em grid Manus, hierarquia visual, heatmap revisado
+- **Settings** – fieldsets enterprise, inputs/toggles alinhados aos tokens
+
+### Arquitetura UI
+- tokens centralizados em `theme.css` e `tokens.js`
+- layout base via `Layout.jsx`
+- components limpos e convergentes
+- remoção completa de CSS morto
+- responsividade revisada em todas as páginas
+
+### Assets de Release
+As capturas oficiais da UI estão em:
+
+public/assets/release/ui/
+├─ dashboard.png
+├─ transfers.png
+├─ audit.png
+├─ health.png
+└─ settings.png
+
+php
+Copy code
+
+### Build Final
+O build final pode ser recriado com:
+
+cd frontend
+npm install
+npm run build
+
+shell
+Copy code
+
+### Status
+A UI 3.0 está finalizada, estável e pronta para homologação.

@@ -1,0 +1,96 @@
+:root {
+  --ketter-color-bg: #05070a;
+  --ketter-color-panel: #0f111a;
+  --ketter-color-border: #1f2735;
+  --ketter-color-border-strong: #242a36;
+  --ketter-color-muted: #9ea6b6;
+  --ketter-color-text: #e8ecff;
+  --ketter-color-accent: #56b4ef;
+  --ketter-color-accent-strong: #4da9ff;
+  --ketter-color-danger: #ff5f5f;
+  --ketter-color-success: #5fd8a5;
+  --ketter-color-warning: #f9b167;
+  --ketter-font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --ketter-size-radius: 10px;
+  --ketter-size-gap: 1.5rem;
+  --ketter-size-transition: 0.25s ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--ketter-font-family);
+  background: var(--ketter-color-bg);
+  color: var(--ketter-color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ketter-panel {
+  background: var(--ketter-color-panel);
+  border: 1px solid var(--ketter-color-border);
+  border-radius: var(--ketter-size-radius);
+  padding: var(--ketter-size-gap);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.ketter-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ketter-size-gap) * 0.5);
+  background: var(--ketter-color-panel);
+  border: 1px solid var(--ketter-color-border-strong);
+  border-radius: var(--ketter-size-radius);
+  padding: var(--ketter-size-gap);
+}
+
+.ketter-section-title {
+  color: var(--ketter-color-text);
+  border-bottom: 1px solid var(--ketter-color-border-strong);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.ketter-muted {
+  color: var(--ketter-color-muted);
+}
+
+.ketter-divider {
+  height: 1px;
+  background: var(--ketter-color-border);
+  border: none;
+  margin: var(--ketter-size-gap) 0;
+}
+
+.ketter-grid {
+  display: grid;
+  gap: var(--ketter-size-gap);
+}
+
+.ketter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: calc(var(--ketter-size-radius) / 2);
+  background: rgba(86, 180, 239, 0.15);
+  color: var(--ketter-color-accent);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(86, 180, 239, 0.4);
+}
+
+@media (max-width: 768px) {
+  .ketter-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,87 @@
+# Blueprint — Hardening TPN/MPA  
+Versão 1.0  
+Fluxo operacional para o Codex CLI
+
+---
+
+## 1. Processo Geral
+Cada tarefa segue o fluxo:
+
+1. Ler arquivos de estratégia  
+2. Ler blueprint  
+3. Localizar tarefa pendente no `state-hardening.md`  
+4. Implementar  
+5. Rodar testes associados  
+6. Rollback se falhar  
+7. Commit se passar  
+8. Atualizar `state-hardening.md`  
+9. Encerrar ciclo  
+
+---
+
+## 2. Passo a Passo Codex-Optimized
+
+### **A) Read Phase**
+- Read STRATEGY_PROMPT.md
+- Read HARDENING_TPN_MPA_STRATEGY.md  
+- Read blueprint-hardening.md  
+
+### **B) Locate Task**
+- Open state-hardening.md  
+- Identify next unchecked `[ ]` task  
+
+### **C) Implement**
+- Modify code with atomic edits  
+- Apply safety patterns  
+- Never weaken security layers  
+
+### **D) Test**
+Executar:
+
+```
+PYTHONPATH=. pytest tests/hardening
+```
+
+E também regressões:
+
+```
+pytest tests/test_comprehensive_move_copy.py
+pytest tests/test_path_security.py
+pytest tests/test_circuit_breaker.py
+pytest tests/test_transaction_rollback.py
+pytest tests/test_watcher_continuous_job.py
+```
+
+### **E) Commit**
+Se tudo passar:
+
+- adicionar commit  
+- atualizar state-hardening.md  
+
+### **F) Rollback**
+Se qualquer teste falhar:
+
+- reverter patch  
+- registrar falha no state-hardening.md  
+
+---
+
+## 3. Regras Obrigatórias
+- UTC sempre  
+- Sem warnings críticos  
+- Sem afrouxar path sanitization  
+- Sem permissões 777  
+- Sem comentários desnecessários  
+- Sem logs fora do padrão JSON  
+- Sem bypass de whitelist  
+
+---
+
+## 4. Finalização
+Quando o `state-hardening.md` zerar:
+
+- gerar relatório PDF de auditoria  
+- validar cadeia de custódia  
+- rodar full CI final  
+
+

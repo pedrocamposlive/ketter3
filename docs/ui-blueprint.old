@@ -1,0 +1,252 @@
+UI Blueprint — Ketter 3.0
+
+Este documento define a arquitetura, padrões, escopo, fluxos e tarefas necessárias para implementar a interface oficial do Ketter 3.0, baseada nos mockups gerados pelo Manus IA.
+
+1. Objetivo
+
+Fornecer uma especificação completa, modular e executável para que o Codex CLI gere, implemente e mantenha a UI do Ketter 3.0. A UI deve representar com precisão:
+
+Segurança TPN/MPA
+
+Operações determinísticas
+
+Monitoramento técnico
+
+Fluxos de transferência entre VLANs
+
+2. Stack Tecnológico
+
+A UI será construída com:
+
+React (Vite) → SPA moderna e rápida
+
+TypeScript
+
+TailwindCSS → estilos utilitários
+
+shadcn/ui → biblioteca de componentes profissional
+
+Recharts → gráficos
+
+Axios → integração com API
+
+Estrutura compatível com o design fornecido pelo Manus IA.
+
+3. Estrutura de Pastas
+/ui
+  /src
+    /components
+      ui/ (componentes globais)
+      charts/
+      cards/
+      tables/
+      layout/
+    /pages
+      Dashboard/
+      Transfers/
+      Audit/
+      VLANMap/
+      Settings/
+    /services
+      api.ts
+    /theme
+      index.ts
+      palette.ts
+    /hooks
+    /utils
+  index.html
+  vite.config.ts
+  tailwind.config.js
+  package.json
+4. Módulos da UI
+4.1 Dashboard
+
+Card: Transferências ativas
+
+Card: Concluídas
+
+Card: Falhas 24h
+
+Card: Hash Verification
+
+Card: ZIP Smart
+
+Gráfico Throughput (Recharts)
+
+Gráfico MOVE vs COPY (Donut)
+
+Painel lateral: Últimos eventos (logs)
+
+4.2 Transfers
+
+Lista de transferências
+
+Filtros (status, data, VLAN)
+
+Botão abrir detalhes
+
+Botão exportar PDF
+
+4.3 Transfer Details
+
+Origem / Destino
+
+Hash SHA-256
+
+ZIP Smart
+
+Timestamps UTC
+
+Logs individuais
+
+4.4 Audit (Logs)
+
+Timeline por evento
+
+Filtros: sucesso, falha, rollback, hash mismatch, alertas
+
+Exportar JSON
+
+4.5 VLAN Map
+
+Representação visual:
+
+[ INGEST ] → [ DUB ] → [ QC ] → [ DELIVERY ]
+
+Cada bloco:
+
+cor
+
+descrição
+
+status (online/offline)
+
+4.6 Settings
+
+Allowed volumes
+
+Whitelist
+
+ZIP Smart thresholds
+
+Logging level
+
+Worker threads
+
+5. API Integration
+
+Usar /services/api.ts com Axios.
+
+Endpoints suportados
+GET /health
+GET /transfers
+GET /transfers/{id}
+GET /transfers/{id}/report
+Modelo
+export const api = axios.create({ baseURL: "http://localhost:8000" });
+6. Design System
+6.1 Paleta base
+
+Fundo: #0D0D0F / #111113
+
+Superfícies: #1A1A1F / #22222A
+
+Texto primário: #E5E7EB
+
+Texto secundário: #9CA3AF
+
+Acento azul/ciano: #2DD4BF / #3B82F6
+
+Bordas: #2A2A32
+
+6.2 Tipografia
+
+Inter, JetBrains Mono ou IBM Plex
+
+6.3 Componentes globais
+
+Card
+
+Badge
+
+Button
+
+Tooltip
+
+Table
+
+GraphWrapper
+
+LogEntry
+
+StatusIndicator
+
+7. Conexão com o Manus IA
+
+Os mockups visuais do Manus serão referenciados para compor:
+
+layout geral
+
+proporções dos cards
+
+organização dos painéis
+
+disposição do dashboard
+
+mapa de VLANs
+
+8. Checklist de Tarefas para o Codex (UI-State)
+
+(será detalhado no arquivo state-ui.md)
+
+Principais etapas:
+
+Criar estrutura /ui via Vite
+
+Configurar Tailwind
+
+Instalar shadcn/ui
+
+Criar Theme
+
+Criar componentes base
+
+Criar Dashboard
+
+Implementar gráficos
+
+Implementar Transfers list
+
+Implementar TransferDetails
+
+Implementar Audit Logs
+
+Implementar VLANMap
+
+Implementar Settings Page
+
+Criar api.ts
+
+Testes de integração com backend
+
+9. Padrões para o Codex CLI
+
+Sempre ler este ui-blueprint antes de qualquer tarefa
+
+Criar arquivos completos (não trechos)
+
+Manter estrutura declarada
+
+Após cada tarefa:
+
+executar build
+
+garantir ausência de erros
+
+atualizar state-ui.md
+
+realizar commit atômico
+
+10. Conclusão
+
+Este blueprint define todos os requisitos para transformar os mockups do Manus IA em código real para a UI do Ketter 3.0, seguindo arquitetura moderna e práticas profissionais.

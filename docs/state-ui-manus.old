@@ -1,0 +1,131 @@
+# state-ui-manus.md
+Fase: Manus Integration  
+Status: Em andamento
+
+Cada [ ] será processado automaticamente pelo Codex.
+
+---
+
+## 1. Theme Tokens (Base Manus)
+[x] Integrar paleta de cores Manus  
+[x] Criar escala de cinzas Manus  
+[x] Aplicar tipografia Manus (font-family, weights, tracking)  
+[x] Criar spacing scale Manus  
+[x] Criar radius scale Manus  
+[x] Criar shadow scale Manus  
+[x] Criar transition scale Manus  
+
+---
+
+## 2. Global Layout Refinement
+[ ] Aplicar a estrutura de grid Manus  
+[ ] Ajustar o header para estilo Manus  
+[ ] Aplicar spacing global  
+[ ] Ajustar responsividade (breakpoints Manus)  
+[ ] Criar container padrão (.ui-container)  
+
+---
+
+## 3. Dashboard Refinement
+[ ] Ajustar KPIs para estilo Manus  
+[ ] Refinar Throughput Chart  
+[ ] Refinar Donut Chart  
+[ ] Refinar Status Grid  
+[ ] Refinar Alerts Panel (estilo SIEM Manus)  
+[ ] Implementar hierarchy spacing Manus  
+[ ] Polir tipografia das seções  
+
+---
+
+## 4. Transfers Page
+[ ] Aplicar o layout Manus  
+[ ] Ajustar TransferCard  
+[ ] Ajustar TransferDetailsPanel  
+[ ] Refinar tabela / grid de jobs  
+[ ] Ajustar cores e severidades  
+
+---
+
+## 5. Audit Page
+[ ] Refinar Audit Timeline  
+[ ] Ajustar cores e marcadores  
+[ ] Criar spacing vertical Manus  
+[ ] Melhorar legibilidade dos eventos  
+
+---
+
+## 6. Settings Page
+[ ] Aplicar design Manus aos fieldsets  
+[ ] Ajustar grid de settings  
+[ ] Refinar botões, toggles, inputs  
+[ ] Aplicar layout enterprise Manus  
+
+---
+
+## 7. Health Page
+[ ] Refinar grid de métricas  
+[ ] Aplicar visual Manus  
+[ ] Ajustar heatmap/status-colors  
+[ ] Refinar hierarchy tipográfica  
+
+---
+
+## 8. Final Pass
+[ ] Revisar layout global  
+[ ] Padronizar spacing entre componentes  
+[ ] Normalizar sombras, radius, bordas  
+[ ] Criar Final Visual Polish Manus  
+[ ] Documentar finalização  
+
+---
+
+## 9. Release Prep
+[ ] Criar pasta /public/assets/manus  
+[ ] Exportar screenshots  
+[ ] Atualizar README com seção “UI Manus Revamp”  
+[ ] Preparar build final (AÇÃO HUMANA NECESSÁRIA)  
+### PATCH PALETA MANUS
+
+
+
+- Atualizou `theme.css` with Manus color palette, acrescentando `--ketter-color-primary`, `--ketter-color-primary-dark`, `--ketter-color-text-light` variants.
+- `tokens.js` agora expõe o mesmo palette via JS object para que components possam import consistent colors.
+
+### PATCH ESCALA CINZAS
+
+
+
+- Introduziu `--ketter-color-gray-100` até `--ketter-color-gray-600` em `theme.css` e no objeto `palette`.
+- `App.css` aplica a escala em hdr (header, nav, hints, empty states) para reforçar hierarquia Manus.
+### PATCH TIPOGRAFIA MANUS
+
+
+
+- Estabeleceu fontes Inter/IBM Plex via tokens (`tokens.js`/`theme.css`) com pesos (300–600) e tracking (tight/normal/loose).
+- Ajustou `App.css` para aplicar essas tokens em body, headings e nav links jogando os novos valores (`--ketter-font-weight-light`, `--ketter-tracking-tight`, `--ketter-color-gray`).
+### PATCH SPACING SCALE
+
+
+
+- Estabeleceu `--ketter-spacing-xxl`/`--ketter-spacing-xxxl` no tema e adicionou esses valores aos tokens para acesso programático.
+- Apliquei os tokens nas grades principais (`.layout-body`, `.main-content`, `.page-shell`) e em cards/sections para uniformizar o espaçamento Manus.
+### PATCH RADIUS SCALE
+
+
+
+- Adicionou `--ketter-radius-sm`, `--ketter-radius-md`, `--ketter-radius-lg` e `--ketter-radius-pill` em `theme.css` e expôs no objeto `radii`.
+- Aplicou esses tokens em cards (`.card-panel`), sidebar, inputs e badges para garantir consistência de curvatura Manus.
+
+### PATCH SHADOWS MANUS
+
+
+
+- Introduziu tokens `--ketter-shadow-1`, `--ketter-shadow-2`, `--ketter-shadow-3` e `--ketter-shadow-focus` no tema e no objeto `shadows`.
+- Cards, KPI panels, dropdowns e alerts agora usam `var(--ketter-shadow-1/2)` para normatizar a iluminação Manus; hover/focus states usam `--ketter-shadow-3` e o foco em inputs utiliza `--ketter-shadow-focus`.
+
+### PATCH TRANSITIONS MANUS
+
+
+
+- Definiu tokens `--ketter-transition-fast`, `--ketter-transition-base`, `--ketter-transition-slow`, `--ketter-transition-focus`, `--ketter-transition-transform` no tema e no objeto `transitions`.
+- Botões, links, entradas, cards, KPI blocks, sidebar e charts agora compartilham esses tokens para hover/focus animados e transformações suaves; todas as declarações antigas `transition:` foram substituídas pelos novos valores.
