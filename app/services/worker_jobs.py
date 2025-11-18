@@ -13,6 +13,8 @@ Week 5: Watch Folder Intelligence support
 import os
 import time
 from datetime import datetime, timezone
+from typing import Optional
+
 from rq import get_current_job, Queue
 from app.database import SessionLocal
 from app.core.copy_engine import transfer_file_with_verification, CopyEngineError
@@ -321,7 +323,7 @@ def watch_and_transfer_job(transfer_id: int) -> dict:
         db.close()
 
 
-def watcher_continuous_job(transfer_id: int, stop_after_cycles: int | None = None) -> dict:
+def watcher_continuous_job(transfer_id: int, stop_after_cycles: Optional[int] = None) -> dict:
     """
     RQ Job: Continuous file monitoring and transfer (Week 6 - NEW)
 

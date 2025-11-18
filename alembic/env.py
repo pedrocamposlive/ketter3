@@ -11,6 +11,9 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
 # Add parent directory to path para importar app
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -30,7 +33,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Override sqlalchemy.url with environment variable
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
 
 
 def run_migrations_offline() -> None:

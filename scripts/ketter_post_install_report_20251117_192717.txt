@@ -1,0 +1,26 @@
+====================================================
+1. Verificando comandos essenciais
+====================================================
+====================================================
+2. Verificando serviços (PostgreSQL e Redis)
+====================================================
+PostgreSQL:
+/tmp:5432 - accepting connections
+Redis:
+PONG
+====================================================
+3. Checando portas esperadas
+====================================================
+Porta 5432 (Postgres):
+Porta 6379 (Redis):
+====================================================
+4. Testando backend (FastAPI)
+====================================================
+Iniciando backend para teste...
+Health-check:
+{"status":"healthy","service":"ketter-api","version":"3.0.0","timestamp":"2025-11-17T22:27:21.001715+00:00","environment":"development"}====================================================
+5. Testando Worker RQ
+====================================================
+Iniciando worker temporário...
+Worker rodando?
+  PID TTY           TIME CMD

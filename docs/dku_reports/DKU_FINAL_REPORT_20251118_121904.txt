@@ -1,0 +1,115 @@
+====================================================
+ KETTER 3.0 — DKU FINAL REPORT
+====================================================
+Generated at: Tue Nov 18 12:19:04 -03 2025
+
+1. System Information
+Darwin MB-PEDRO.local 24.6.0 Darwin Kernel Version 24.6.0: Mon Aug 11 21:14:08 PDT 2025; root:xnu-11417.140.69.701.11~1/RELEASE_ARM64_T8103 arm64
+
+2. PostgreSQL Status
+postgresql@16 started         pedrocampos ~/Library/LaunchAgents/homebrew.mxcl.postgresql@16.plist
+
+3. Redis Status
+redis         started         pedrocampos ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+
+4. Virtualenv Contents
+Package            Version
+------------------ ---------------
+aiofiles           23.2.1
+alembic            1.13.1
+annotated-types    0.7.0
+anyio              4.11.0
+certifi            2025.11.12
+cffi               2.0.0
+chardet            5.2.0
+charset-normalizer 3.4.4
+click              8.3.1
+coverage           7.12.0
+cryptography       46.0.3
+fastapi            0.109.0
+h11                0.16.0
+httpcore           1.0.9
+httptools          0.7.1
+httpx              0.26.0
+idna               3.11
+iniconfig          2.3.0
+Mako               1.3.10
+MarkupSafe         3.0.3
+packaging          25.0
+pillow             12.0.0
+pip                25.3
+pluggy             1.6.0
+psycopg2-binary    2.9.9
+pycparser          2.23
+pydantic           2.5.3
+pydantic_core      2.14.6
+pydantic-settings  2.1.0
+pytest             7.4.4
+pytest-asyncio     0.23.3
+pytest-cov         4.1.0
+python-dotenv      1.0.1
+python-json-logger 2.0.7
+python-multipart   0.0.6
+PyYAML             6.0.1
+redis              5.0.1
+reportlab          4.0.9
+requests           2.31.0
+rq                 1.16.1
+setuptools         80.9.0
+sniffio            1.3.1
+SQLAlchemy         2.0.25
+starlette          0.35.1
+tqdm               4.66.1
+types-cffi         1.17.0.20250915
+types-pyOpenSSL    24.1.0.20240722
+types-redis        4.6.0.20240106
+types-setuptools   80.9.0.20250822
+typing_extensions  4.15.0
+urllib3            2.5.0
+uvicorn            0.27.0
+uvloop             0.22.1
+watchfiles         1.1.1
+websockets         15.0.1
+wheel              0.45.1
+
+5. DKU Logs
+total 680
+-rw-r--r--  1 pedrocampos  staff   4.8K Nov 18 12:10 DKU_FINAL_REPORT_20251118_121024.txt
+-rw-r--r--  1 pedrocampos  staff   2.1K Nov 18 12:19 DKU_FINAL_REPORT_20251118_121904.txt
+-rw-r--r--  1 pedrocampos  staff   2.0K Nov 17 22:29 checklist_dku_20251117_222944.txt
+-rw-r--r--  1 pedrocampos  staff   439B Nov 18 12:10 checklist_safe_20251118_121023.txt
+-rw-r--r--  1 pedrocampos  staff   439B Nov 18 12:19 checklist_safe_20251118_121903.txt
+-rw-r--r--  1 pedrocampos  staff   1.2K Nov 17 20:45 codex_final_summary.md
+-rw-r--r--  1 pedrocampos  staff   372B Nov 17 20:58 dku_install_20251117_205846.log
+-rw-r--r--  1 pedrocampos  staff   372B Nov 17 21:14 dku_install_20251117_211411.log
+-rw-r--r--  1 pedrocampos  staff   372B Nov 17 21:16 dku_install_20251117_211616.log
+-rw-r--r--  1 pedrocampos  staff   372B Nov 17 21:18 dku_install_20251117_211839.log
+-rw-r--r--  1 pedrocampos  staff   416B Nov 17 21:23 dku_install_20251117_212349.log
+-rw-r--r--  1 pedrocampos  staff   897B Nov 17 21:27 dku_install_20251117_212733.log
+-rw-r--r--  1 pedrocampos  staff   897B Nov 17 21:39 dku_install_20251117_213955.log
+-rw-r--r--  1 pedrocampos  staff   443B Nov 18 00:18 dku_install_20251118_001857.log
+-rw-r--r--  1 pedrocampos  staff   5.9K Nov 17 21:49 dku_run_20251117_214919.log
+-rw-r--r--  1 pedrocampos  staff    22K Nov 17 21:59 dku_run_20251117_215849.log
+-rw-r--r--  1 pedrocampos  staff    22K Nov 17 22:06 dku_run_20251117_220545.log
+-rw-r--r--  1 pedrocampos  staff    23K Nov 17 22:18 dku_run_20251117_221734.log
+-rw-r--r--  1 pedrocampos  staff    23K Nov 17 22:29 dku_run_20251117_222913.log
+-rw-r--r--  1 pedrocampos  staff    19K Nov 17 22:34 dku_run_20251117_223350.log
+-rw-r--r--  1 pedrocampos  staff    19K Nov 17 22:37 dku_run_20251117_223716.log
+-rw-r--r--  1 pedrocampos  staff   3.2K Nov 17 22:42 dku_run_20251117_224231.log
+-rw-r--r--  1 pedrocampos  staff    23K Nov 17 22:47 dku_run_20251117_224716.log
+-rw-r--r--  1 pedrocampos  staff   437B Nov 17 23:18 dku_run_20251117_231848.log
+-rw-r--r--  1 pedrocampos  staff   437B Nov 17 23:18 dku_run_20251117_231856.log
+-rw-r--r--  1 pedrocampos  staff   437B Nov 18 00:18 dku_run_20251118_001814.log
+-rw-r--r--  1 pedrocampos  staff   437B Nov 18 00:19 dku_run_20251118_001956.log
+-rw-r--r--  1 pedrocampos  staff   437B Nov 18 00:26 dku_run_20251118_002629.log
+-rw-r--r--  1 pedrocampos  staff   5.2K Nov 18 00:28 dku_run_20251118_002809.log
+-rw-r--r--  1 pedrocampos  staff   4.2K Nov 18 11:42 dku_run_20251118_114237.log
+-rw-r--r--  1 pedrocampos  staff   6.9K Nov 18 11:53 dku_run_20251118_115244.log
+-rw-r--r--  1 pedrocampos  staff    28K Nov 18 12:10 dku_run_20251118_120945.log
+-rw-r--r--  1 pedrocampos  staff    25K Nov 18 12:19 dku_run_20251118_121829.log
+-rw-r--r--  1 pedrocampos  staff   859B Nov 18 12:10 post_install_validation_20251118_121023.txt
+-rw-r--r--  1 pedrocampos  staff   859B Nov 18 12:19 post_install_validation_20251118_121903.txt
+
+====================================================
+ DKU FINAL REPORT COMPLETED
+====================================================

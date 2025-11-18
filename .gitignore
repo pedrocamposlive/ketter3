@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / Vite / React
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs
+logs/
+*.log
+
+# Alembic artifacts
+alembic/versions/*.pyc
+alembic/versions/*.py
+!alembic/versions/README   # se quiser deixar um arquivo explicativo
+
+# DKU reports
+dku/docs/dku_reports/
+
+# Envs
+.env
+.env.local
+.env.*
+

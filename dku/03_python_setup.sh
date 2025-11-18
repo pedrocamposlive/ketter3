@@ -1,47 +1,60 @@
 #!/bin/bash
 # ------------------------------------------------------------
-# DKU Module 03 — Python Environment Preparation
+# DKU Module 03 v7 — Python Environment Setup (macOS ARM)
 # ------------------------------------------------------------
 set -euo pipefail
 IFS=$'\n\t'
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_PATH="${REPO_ROOT}/.venv"
+echo "[DKU-03] Starting Python environment setup."
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VENV_PATH="${REPO_ROOT}/dku/.venv"
 REQ_FILE="${REPO_ROOT}/requirements.txt"
 
 log() { echo "[DKU-03] $1"; }
 
+# ------------------------------------------------------------
+# 1. Validate Python 3.11
+# ------------------------------------------------------------
 log "Validating Python 3.11 availability."
-PYTHON_BIN="$(command -v python3.11 || true)"
-if [[ -z "$PYTHON_BIN" ]]; then
-  echo "[ERROR] python3.11 not found in PATH. Install via Homebrew at /opt/homebrew." >&2
+
+if ! command -v python3.11 >/dev/null 2>&1; then
+  echo "[ERROR] Python 3.11 is not installed." >&2
   exit 1
 fi
-log "Python 3.11 binary located at $PYTHON_BIN."
 
-if [[ -d "$VENV_PATH" ]]; then
-  log "Removing existing virtualenv for deterministic recreation."
-  rm -rf "$VENV_PATH"
-fi
+PYTHON_BIN="$(command -v python3.11)"
+log "Python 3.11 binary located at ${PYTHON_BIN}."
 
-log "Creating deterministic virtualenv at $VENV_PATH."
+# ------------------------------------------------------------
+# 2. Recreate deterministic virtualenv
+# ------------------------------------------------------------
+log "Creating deterministic virtualenv at ${VENV_PATH}."
+
+rm -rf "$VENV_PATH" || true
 "$PYTHON_BIN" -m venv "$VENV_PATH"
+
+# shellcheck disable=SC1091
 source "$VENV_PATH/bin/activate"
 
-log "Upgrading pip, setuptools, wheel."
-pip install --upgrade pip setuptools wheel
-
+# ------------------------------------------------------------
+# 3. Validate requirements.txt
+# ------------------------------------------------------------
 if [[ ! -f "$REQ_FILE" ]]; then
-  echo "[ERROR] requirements.txt missing at $REQ_FILE." >&2
+  echo "[ERROR] requirements.txt missing at ${REQ_FILE}." >&2
   exit 1
 fi
 
-log "Installing python dependencies from requirements.txt."
+# ------------------------------------------------------------
+# 4. Upgrade pip/setuptools/wheel
+# ------------------------------------------------------------
+log "Upgrading pip, setuptools, wheel."
+pip install --upgrade pip setuptools wheel >/dev/null
+
+# ------------------------------------------------------------
+# 5. Install backend dependencies
+# ------------------------------------------------------------
+log "Installing backend dependencies from ${REQ_FILE}."
 pip install -r "$REQ_FILE"
 
-if ! command -v alembic >/dev/null 2>&1; then
-  echo "[ERROR] alembic binary not available after dependency installation." >&2
-  exit 1
-fi
-
-log "Python environment prepared successfully."
+log "Python environment setup completed successfully."

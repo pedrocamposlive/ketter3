@@ -1,0 +1,24 @@
+[04] Validating virtualenv.
+[04] Virtualenv activated.
+[04] Checking PostgreSQL readiness...
+127.0.0.1:5432 - accepting connections
+[04] PostgreSQL OK.
+[04] Checking Redis...
+PONG
+[04] Redis OK.
+[04] Running DKU-SAFE checklist...
+[SAFE] Starting DKU-SAFE checklist.
+[SAFE] Checking virtual environment.
+[SAFE] Virtualenv activated.
+[SAFE] Testing PostgreSQL readiness...
+[SAFE] PostgreSQL OK.
+[SAFE] Testing Redis connectivity...
+[SAFE] Redis OK.
+[SAFE] Checking alembic import.
+[SAFE] Alembic import OK.
+[SAFE] Checking backend importability: app.main
+ CORS: Allowed origins: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8000']
+[SAFE] Backend import OK.
+[SAFE] SAFE CHECKLIST COMPLETED SUCCESSFULLY.
+[04] SAFE checklist completed.
+[04] Post-Install Validation Completed Successfully.

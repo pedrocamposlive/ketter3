@@ -1,0 +1,4 @@
+====================================================
+1. Verificando comandos essenciais
+====================================================
+FALHA: comando 'psql' não encontrado
