@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from mvp_core.db.database import SessionLocal
 from mvp_core.db import models as db_models
-from mvp_core.app.schemas import JobStatus, JobMode
+from mvp_core.app.schemas import JobStatus
 from mvp_core.transfer_engine import (
     TransferJob as EngineJob,
     TransferMode,
@@ -62,6 +62,8 @@ def process_next_job(db: Session) -> bool:
 
     if result.status.value == "success":
         job.status = JobStatus.SUCCESS.value
+        job.files_copied = result.stats.files_copied
+        job.bytes_copied = result.stats.bytes_copied
         event_type = "finished"
         message = (
             f"Job finished successfully: "
@@ -69,6 +71,8 @@ def process_next_job(db: Session) -> bool:
         )
     else:
         job.status = JobStatus.FAILED.value
+        job.files_copied = None
+        job.bytes_copied = None
         event_type = "error"
         message = f"Job failed: {result.error}"
 
