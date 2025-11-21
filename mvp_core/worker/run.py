@@ -12,12 +12,11 @@ from mvp_core.app.schemas import JobStatus
 from mvp_core.transfer_engine import (
     TransferJob as EngineJob,
     TransferMode,
-    run_transfer,
 )
 from mvp_core.transfer_engine.planner import (
     decide_strategy,
-    TransferStrategy,
 )
+from mvp_core.transfer_engine.strategy_runner import run_plan
 
 
 POLL_INTERVAL_SECONDS = float(os.getenv("WORKER_POLL_INTERVAL", "2.0"))
@@ -85,18 +84,17 @@ def process_next_job(db: Session) -> bool:
     db.add(strategy_event)
     db.commit()
 
-    # MVP v1: independente da estratégia, ainda executamos DIRECT.
-    # Quando implementarmos ZIP_FIRST de fato, a lógica será ramificada aqui.
-    result = run_transfer(engine_job)
+    # Executa o plano (DIRECT ou ZIP_FIRST)
+    status_value, files_copied, bytes_copied, error = run_plan(plan)
 
-    if result.status.value == "success":
+    if status_value == "success":
         job.status = JobStatus.SUCCESS.value
-        job.files_copied = result.stats.files_copied
-        job.bytes_copied = result.stats.bytes_copied
+        job.files_copied = files_copied
+        job.bytes_copied = bytes_copied
         event_type = "finished"
         message = (
             f"Job finished successfully: "
-            f"{result.stats.files_copied} files, {result.stats.bytes_copied} bytes "
+            f"{files_copied} files, {bytes_copied} bytes "
             f"(strategy={plan.strategy.value})"
         )
     else:
@@ -104,7 +102,7 @@ def process_next_job(db: Session) -> bool:
         job.files_copied = None
         job.bytes_copied = None
         event_type = "error"
-        message = f"Job failed: {result.error} (strategy={plan.strategy.value})"
+        message = f"Job failed: {error} (strategy={plan.strategy.value})"
 
     event = db_models.JobEvent(
         job_id=job.id,
