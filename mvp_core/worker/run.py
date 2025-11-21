@@ -14,6 +14,10 @@ from mvp_core.transfer_engine import (
     TransferMode,
     run_transfer,
 )
+from mvp_core.transfer_engine.planner import (
+    decide_strategy,
+    TransferStrategy,
+)
 
 
 POLL_INTERVAL_SECONDS = float(os.getenv("WORKER_POLL_INTERVAL", "2.0"))
@@ -58,6 +62,31 @@ def process_next_job(db: Session) -> bool:
         mode=TransferMode(job.mode),
     )
 
+    # Decisão de estratégia (DIRECT vs ZIP_FIRST)
+    plan = decide_strategy(engine_job)
+
+    log(
+        "Strategy decision for job "
+        f"{job.id}: strategy={plan.strategy.value}, "
+        f"n_files={plan.n_files}, total_bytes={plan.total_bytes}, "
+        f"avg_size={plan.avg_size_bytes}",
+    )
+
+    # Registramos um evento com a decisão para observabilidade.
+    strategy_event = db_models.JobEvent(
+        job_id=job.id,
+        event_type="strategy_decision",
+        message=(
+            f"strategy={plan.strategy.value}, "
+            f"n_files={plan.n_files}, total_bytes={plan.total_bytes}, "
+            f"avg_size={plan.avg_size_bytes}"
+        ),
+    )
+    db.add(strategy_event)
+    db.commit()
+
+    # MVP v1: independente da estratégia, ainda executamos DIRECT.
+    # Quando implementarmos ZIP_FIRST de fato, a lógica será ramificada aqui.
     result = run_transfer(engine_job)
 
     if result.status.value == "success":
@@ -67,14 +96,15 @@ def process_next_job(db: Session) -> bool:
         event_type = "finished"
         message = (
             f"Job finished successfully: "
-            f"{result.stats.files_copied} files, {result.stats.bytes_copied} bytes"
+            f"{result.stats.files_copied} files, {result.stats.bytes_copied} bytes "
+            f"(strategy={plan.strategy.value})"
         )
     else:
         job.status = JobStatus.FAILED.value
         job.files_copied = None
         job.bytes_copied = None
         event_type = "error"
-        message = f"Job failed: {result.error}"
+        message = f"Job failed: {result.error} (strategy={plan.strategy.value})"
 
     event = db_models.JobEvent(
         job_id=job.id,
@@ -84,7 +114,7 @@ def process_next_job(db: Session) -> bool:
     db.add(event)
     db.commit()
 
-    log(f"Job {job.id} -> {job.status}")
+    log(f"Job {job.id} -> {job.status} (strategy={plan.strategy.value})")
     return True
 
 
