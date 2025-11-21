@@ -26,3 +26,4 @@ dku/docs/dku_reports/
 .env.local
 .env.*
 
+dev_data/
