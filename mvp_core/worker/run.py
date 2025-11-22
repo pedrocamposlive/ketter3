@@ -71,7 +71,6 @@ def process_next_job(db: Session) -> bool:
         f"avg_size={plan.avg_size_bytes}",
     )
 
-    # Registramos um evento com a decisão para observabilidade.
     strategy_event = db_models.JobEvent(
         job_id=job.id,
         event_type="strategy_decision",
@@ -85,24 +84,35 @@ def process_next_job(db: Session) -> bool:
     db.commit()
 
     # Executa o plano (DIRECT ou ZIP_FIRST)
-    status_value, files_copied, bytes_copied, error = run_plan(plan)
+    result = run_plan(plan)
 
-    if status_value == "success":
+    if result.status == "success":
         job.status = JobStatus.SUCCESS.value
-        job.files_copied = files_copied
-        job.bytes_copied = bytes_copied
+        job.files_copied = result.files_copied
+        job.bytes_copied = result.bytes_copied
+
+        extra_zip = (
+            f", zip_size_bytes={result.zip_size_bytes}"
+            if result.zip_size_bytes is not None
+            else ""
+        )
+
         event_type = "finished"
         message = (
             f"Job finished successfully: "
-            f"{files_copied} files, {bytes_copied} bytes "
-            f"(strategy={plan.strategy.value})"
+            f"{result.files_copied} files, {result.bytes_copied} bytes "
+            f"(strategy={plan.strategy.value}{extra_zip})"
         )
     else:
         job.status = JobStatus.FAILED.value
         job.files_copied = None
         job.bytes_copied = None
+
         event_type = "error"
-        message = f"Job failed: {error} (strategy={plan.strategy.value})"
+        message = (
+            f"Job failed: {result.error} "
+            f"(strategy={plan.strategy.value})"
+        )
 
     event = db_models.JobEvent(
         job_id=job.id,

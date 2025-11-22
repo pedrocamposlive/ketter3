@@ -4,60 +4,102 @@ import os
 import shutil
 import uuid
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional
 
 from mvp_core.transfer_engine import TransferJob, TransferMode, run_transfer
 from mvp_core.transfer_engine.planner import TransferPlan, TransferStrategy
 
 
-def run_plan(plan: TransferPlan) -> Tuple[str, int, int, Optional[str]]:
-    """
-    Executa um plano de transferência e normaliza o resultado em:
-    (status, files_copied, bytes_copied, error)
+@dataclass
+class ExecutionResult:
+    status: str                 # "success" | "failed"
+    files_copied: int
+    bytes_copied: int
+    error: Optional[str] = None
+    zip_size_bytes: Optional[int] = None
 
-    status: "success" | "failed"
+
+def run_plan(plan: TransferPlan) -> ExecutionResult:
+    """
+    Executa um plano de transferência (DIRECT ou ZIP_FIRST).
     """
     if plan.strategy == TransferStrategy.DIRECT:
-        result = run_transfer(plan.job)
-        return (
-            result.status.value,
-            result.stats.files_copied,
-            result.stats.bytes_copied,
-            result.error,
-        )
+        return _run_direct(plan)
 
-    # Estratégia ZIP_FIRST
     return _run_zip_first(plan)
 
 
-def _run_zip_first(plan: TransferPlan) -> Tuple[str, int, int, Optional[str]]:
+def _run_direct(plan: TransferPlan) -> ExecutionResult:
     """
-    Implementação da estratégia ZIP_FIRST:
+    Execução simples usando a engine padrão.
+    """
+    result = run_transfer(plan.job)
+    return ExecutionResult(
+        status=result.status.value,
+        files_copied=result.stats.files_copied,
+        bytes_copied=result.stats.bytes_copied,
+        error=result.error,
+        zip_size_bytes=None,
+    )
+
+
+def _run_zip_first(plan: TransferPlan) -> ExecutionResult:
+    """
+    Estratégia ZIP_FIRST:
 
     1. Cria um .zip sem compressão a partir do diretório source.
-    2. Transfere o .zip usando o engine normal (run_transfer).
+    2. Transfere o .zip usando run_transfer().
     3. Descompacta o .zip no destino.
-    4. Limpa temporários (zip local e remoto).
-    5. Para MOVE, remove o diretório source original.
+    4. Remove o .zip no destino.
+    5. Se modo MOVE, remove o diretório source original.
+    6. Limpa o .zip temporário local.
 
-    Retorna (status, files_copied, bytes_copied, error).
-    files_copied / bytes_copied são referentes aos ARQUIVOS ORIGINAIS
-    (plan.n_files / plan.total_bytes), não ao .zip.
+    Stats (files_copied / bytes_copied) são sempre dos ARQUIVOS ORIGINAIS
+    (plan.n_files / plan.total_bytes), não do .zip.
     """
     job: TransferJob = plan.job
     source: Path = job.source
     dest_root: Path = job.destination
     mode: TransferMode = job.mode
 
-    # Se por algum motivo o source não for diretório, degradamos para DIRECT.
+    # Degradação de segurança: se o source não for diretório, cai para DIRECT.
     if not source.is_dir():
-        result = run_transfer(job)
-        return (
-            result.status.value,
-            result.stats.files_copied,
-            result.stats.bytes_copied,
-            result.error,
+        return _run_direct(plan)
+
+    # Proteção: relações perigosas entre source e destination
+    try:
+        source_resolved = source.resolve()
+        dest_resolved = dest_root.resolve()
+    except FileNotFoundError:
+        return ExecutionResult(
+            status="failed",
+            files_copied=0,
+            bytes_copied=0,
+            error="ZIP_FIRST: source or destination path does not exist",
+            zip_size_bytes=None,
+        )
+
+    # 1) destination == source
+    if dest_resolved == source_resolved:
+        return ExecutionResult(
+            status="failed",
+            files_copied=0,
+            bytes_copied=0,
+            error="ZIP_FIRST: unsafe configuration (destination == source)",
+            zip_size_bytes=None,
+        )
+
+    # 2) destination dentro de source (ou vice-versa)
+    # Isso pode gerar loops bizarros.
+    if dest_resolved.is_relative_to(source_resolved) or source_resolved.is_relative_to(dest_resolved):
+        return ExecutionResult(
+            status="failed",
+            files_copied=0,
+            bytes_copied=0,
+            error="ZIP_FIRST: unsafe configuration (one path contains the other)",
+            zip_size_bytes=None,
         )
 
     tmp_root = Path(os.getenv("KETTER_TMP_DIR", "/tmp/ketter_tmp"))
@@ -72,16 +114,17 @@ def _run_zip_first(plan: TransferPlan) -> Tuple[str, int, int, Optional[str]]:
     dest_zip_path = dest_root / tmp_zip_path.name
 
     try:
-        # 1) Criar ZIP sem compressão
+        # 1) Criar ZIP sem compressão (usando nome base do diretório)
         with zipfile.ZipFile(tmp_zip_path, "w", compression=zipfile.ZIP_STORED) as zf:
             for dirpath, _, filenames in os.walk(source):
                 dirpath_path = Path(dirpath)
                 for name in filenames:
                     file_path = dirpath_path / name
-                    # Ex: source=/data/src → arcname="src/subdir/file2.txt"
                     rel = file_path.relative_to(source)
                     arcname = Path(source.name) / rel
                     zf.write(file_path, arcname.as_posix())
+
+        zip_size_bytes = tmp_zip_path.stat().st_size
 
         # 2) Transferir o ZIP usando o engine normal
         zip_job = TransferJob(
@@ -91,14 +134,15 @@ def _run_zip_first(plan: TransferPlan) -> Tuple[str, int, int, Optional[str]]:
         )
         zip_result = run_transfer(zip_job)
         if zip_result.status.value != "success":
-            return (
-                "failed",
-                0,
-                0,
-                f"ZIP_FIRST: zip transfer failed: {zip_result.error}",
+            return ExecutionResult(
+                status="failed",
+                files_copied=0,
+                bytes_copied=0,
+                error=f"ZIP_FIRST: zip transfer failed: {zip_result.error}",
+                zip_size_bytes=zip_size_bytes,
             )
 
-        # 3) Descompactar no destino (cria dest_root/source.name/...)
+        # 3) Descompactar no destino
         with zipfile.ZipFile(dest_zip_path, "r") as zf:
             zf.extractall(dest_root)
 
@@ -112,18 +156,18 @@ def _run_zip_first(plan: TransferPlan) -> Tuple[str, int, int, Optional[str]]:
         if mode == TransferMode.MOVE and source.exists():
             shutil.rmtree(source)
 
-        # Limpar zip temporário
+        # 6) Limpar zip temporário local
         try:
             tmp_zip_path.unlink()
         except FileNotFoundError:
             pass
 
-        # Stats correspondem aos arquivos ORIGINAIS
-        return (
-            "success",
-            plan.n_files,
-            plan.total_bytes,
-            None,
+        return ExecutionResult(
+            status="success",
+            files_copied=plan.n_files,
+            bytes_copied=plan.total_bytes,
+            error=None,
+            zip_size_bytes=zip_size_bytes,
         )
 
     except Exception as exc:  # noqa: BLE001
@@ -139,9 +183,10 @@ def _run_zip_first(plan: TransferPlan) -> Tuple[str, int, int, Optional[str]]:
         except Exception:
             pass
 
-        return (
-            "failed",
-            0,
-            0,
-            f"ZIP_FIRST: unexpected error: {exc}",
+        return ExecutionResult(
+            status="failed",
+            files_copied=0,
+            bytes_copied=0,
+            error=f"ZIP_FIRST: unexpected error: {exc}",
+            zip_size_bytes=None,
         )
