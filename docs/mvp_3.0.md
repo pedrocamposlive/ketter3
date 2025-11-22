@@ -137,3 +137,152 @@ Enquanto o MVP 3.0 não estiver estável:
 
 Toda nova funcionalidade do Ketter 3.0 deve entrar em `mvp_core/`.  
 Tudo que está fora disso é legado e só será mexido depois que o MVP estiver estável.
+
+## Estratégia de Transferência: DIRECT vs ZIP_FIRST (MVP 3.0)
+
+### Motivação
+
+Contexto real do Ketter nos studios:
+
+- Pastas com **milhares de arquivos pequenos** (ex.: sessões de Pro Tools com 1.000–2.000 `.wav` de ~1 MB).
+- Copiar arquivo a arquivo degradou brutalmente a performance (ex.: 2.000 arquivos → ~40 min).
+- Ao empacotar em um único `.zip` sem compressão, a transferência de 1.6–2 GB foi praticamente instantânea.
+- Para arquivos grandes ou poucas unidades, o overhead de zip não compensa.
+
+Conclusão: precisamos de uma **estratégia automática** que escolha entre:
+
+- `DIRECT` → copiar/mover arquivo a arquivo (engine atual).
+- `ZIP_FIRST` → empacotar pasta em zip (sem compressão), transferir, descompactar no destino, limpar o lixo.
+
+### Política v1 (MVP) – Critérios de Decisão
+
+Política inicial (ajustável) para diretórios:
+
+1. A estratégia `ZIP_FIRST` só é considerada se:
+
+   - `source` for um diretório, **não** um arquivo único.
+   - O número total de arquivos `N_files` dentro de `source` for maior que um limite.
+   - O tamanho médio dos arquivos for "pequeno" (muitos arquivos pequenos é o problema real).
+
+2. Caso contrário, usamos `DIRECT`.
+
+Parâmetros default (v1):
+
+- `N_FILES_ZIP_THRESHOLD`  
+  - **Default**: `1000` arquivos  
+  - Regra: se `N_files > 1000`, habilita candidata `ZIP_FIRST`.
+
+- `AVG_FILE_SIZE_MAX_BYTES`  
+  - **Default**: `4 * 1024 * 1024` (4 MiB)  
+  - Regra: se `(total_bytes / N_files) < 4 MiB`, consideramos a pasta como “muitos arquivos pequenos”.
+
+Política final v1:
+
+- Se `source` **não** é diretório → `DIRECT`.
+- Se `source` é diretório:
+  - Calcula `N_files` e `total_bytes`.
+  - Se `N_files > N_FILES_ZIP_THRESHOLD` **e** `avg_size = total_bytes / N_files < AVG_FILE_SIZE_MAX_BYTES`  
+    → usar `ZIP_FIRST`.
+  - Caso contrário → `DIRECT`.
+
+Observação: esses limites são **heurísticos**, calibráveis via env vars em ambiente LAB:
+
+- `KETTER_ZIP_THRESHOLD_FILES` (override de `N_FILES_ZIP_THRESHOLD`)
+- `KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES` (override de `AVG_FILE_SIZE_MAX_BYTES`)
+
+### Onde vive essa decisão na arquitetura
+
+Para não transformar o código em um Frankenstein, a estratégia será isolada em uma **camada de planejamento**:
+
+- Novo módulo: `mvp_core/transfer_engine/planner.py`
+
+  Responsabilidades:
+
+  - Definir um enum de estratégia:
+    - `TransferStrategy = {DIRECT, ZIP_FIRST}`
+  - Definir um plano de transferência:
+    - `TransferPlan` com campos como:
+      - `job: TransferJob`
+      - `strategy: TransferStrategy`
+      - talvez métricas pré-calculadas: `n_files`, `total_bytes`, `avg_size_bytes`
+  - Função principal:
+    - `decide_strategy(job: TransferJob) -> TransferPlan`
+    - Implementa a política descrita acima:
+      - Faz o walk em `job.source`, conta arquivos, soma bytes.
+      - Lê thresholds das env vars (ou usa default).
+      - Retorna um plano com `strategy = DIRECT` ou `ZIP_FIRST`.
+
+- `mvp_core/worker/run.py` (scheduler simples do MVP):
+
+  - Continua responsável por:
+    - Buscar jobs `pending` no DB,
+    - Atualizar status (`running` → `success/failed`),
+    - Criar `JobEvent`.
+  - Passos no loop:
+    1. Carrega o `Job` do DB.
+    2. Converte para `TransferJob` (como já acontece hoje).
+    3. Chama `decide_strategy(transfer_job)` do `planner`.
+    4. Se `strategy == DIRECT` → chama `run_transfer(...)` (engine atual).
+    5. Se `strategy == ZIP_FIRST` → chama função específica (a ser implementada) que encapsula:
+       - zip sem compressão,
+       - transferência do zip,
+       - unzip no destino,
+       - limpeza de origem/destino temporários,
+       - atualização de stats.
+
+### O que **NÃO** entra no core `run_transfer` (por decisão explícita)
+
+Para manter o core simples, estável e testável:
+
+- A função `run_transfer(job: TransferJob)` **continua sendo apenas**:
+  - “copie/mova este source para este destino”.
+  - Sem conhecimento de zip, heurística, thresholds, estratégias.
+- Toda a inteligência de “zip ou não zipar” fica:
+  - no `planner` (decisão),
+  - e em funções específicas do tipo `run_transfer_zip_first(plan)` (implementação ZIP_FIRST), **fora** do core atual.
+
+Isso evita:
+
+- Enfiar `if ZIP_FIRST` dentro de todo canto do engine.
+- Misturar heurística de scheduler com lógica de I/O pura.
+- Repetir a mesma decisão em UI, API, worker, etc.
+
+### Roadmap de implementação para a Strategy
+
+Passos futuros (próximas tarefas no MVP 3.0):
+
+1. Criar `mvp_core/transfer_engine/planner.py` com:
+   - `TransferStrategy` enum (`DIRECT`, `ZIP_FIRST`),
+   - `TransferPlan` dataclass,
+   - `decide_strategy(TransferJob)` implementando a política v1.
+
+2. Atualizar `mvp_core/worker/run.py` para:
+   - chamar `decide_strategy()` antes de executar a transferência,
+   - logar qual estratégia foi usada no `JobEvent` (`"strategy=DIRECT"` ou `"strategy=ZIP_FIRST"`).
+
+3. Implementar `run_transfer_zip_first(plan: TransferPlan)`:
+   - criar zip sem compressão no source (ex.: `/tmp/ketter_tmp/...` ou ao lado do source),
+   - transferir com `run_transfer` atual (apenas 1 arquivo),
+   - descompactar no destino,
+   - atualizar `Job.files_copied` e `Job.bytes_copied` com os dados pós-execução,
+   - limpar temporários,
+   - logar eventos detalhados (criação do zip, envio, extração, limpeza).
+
+4. Refinar thresholds com base em testes reais:
+   - Registar em `JobEvent`:
+     - `n_files`,
+     - `total_bytes`,
+     - `avg_size_bytes`,
+     - `strategy`.
+   - Usar esses dados para ajustar `N_FILES_ZIP_THRESHOLD` e `AVG_FILE_SIZE_MAX_BYTES` em ambiente LAB antes de fixar defaults para produção.
+
+---
+
+Se você colar esse bloco no `docs/mvp_3.0.md`, a estratégia fica explicitamente documentada:
+
+- Critérios objetivos,
+- Onde a lógica vive,
+- O que o core NÃO deve fazer,
+- E um roadmap de implementação coerente.
+
+Próximo passo, depois de registrar isso no doc, é a gente partir para o `planner.py` + ajuste do worker, mas agora com o contrato já escrito e não improvisado.
