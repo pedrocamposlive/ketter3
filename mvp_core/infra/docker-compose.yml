@@ -42,8 +42,9 @@ services:
       DATABASE_URL: postgresql://ketter_user:ketter_pass@postgres:5432/ketter_db
       REDIS_URL: redis://redis:6379/0
       WORKER_POLL_INTERVAL: "2.0"
-      KETTER_ZIP_THRESHOLD_FILES: "1"
-      KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES: "1048576"  # 1 MiB
+      # thresholds para forçar DIRECT nesse teste
+      KETTER_ZIP_THRESHOLD_FILES: "100000"
+      KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES: "4194304"
     command: ["python", "-m", "mvp_core.worker.run"]
     volumes:
       - ../../dev_data:/data
