@@ -27,3 +27,5 @@ dku/docs/dku_reports/
 .env.*
 
 dev_data/
+# macOS noise
+.DS_Store

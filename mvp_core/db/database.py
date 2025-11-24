@@ -1,33 +1,27 @@
-from __future__ import annotations
-
 import os
-from typing import Generator
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://ketter_user:ketter_pass@localhost:5432/ketter_db",
-)
-
-engine = create_engine(
-    DATABASE_URL,
-    future=True,
-)
-
-SessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-    expire_on_commit=False,
-    future=True,
-)
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 Base = declarative_base()
 
+# Ordem de resolução:
+# 1) DB_URL (Docker / infra)
+# 2) DATABASE_URL (legado)
+# 3) Fallback: serviço "postgres" do docker-compose, DB "ketter_mvp"
+DB_URL = (
+    os.getenv("DB_URL")
+    or os.getenv("DATABASE_URL")
+    or "postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp"
+)
 
-def get_session() -> Generator[Session, None, None]:
+print(f"[DB] Using DB_URL={DB_URL}", flush=True)
+
+engine = create_engine(DB_URL, future=True)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_session():
     db = SessionLocal()
     try:
         yield db

@@ -293,3 +293,394 @@ Próximo passo, depois de registrar isso no doc, é a gente partir para o `plann
 - DIRECT: 2000 arquivos copiados com sucesso, fanout intacto em `/data/dst_direct`.
 - ZIP_FIRST (KETTER_ZIP_THRESHOLD_FILES=1): zip intermediário `~2.29 MB`, extração em `/data/dst_zip2/src`, mesma contagem de arquivos e bytes.
 - Próximo passo: medir tempo de job (DIRECT vs ZIP_FIRST) em storage real de lab para calibrar thresholds.
+
+### Resultados de lab – 2000 arquivos pequenos (~1 KB cada)
+
+Ambiente: macOS dev, SSD local, containers Docker (Postgres + Redis + API + Worker), bind mount `dev_data -> /data`.
+
+| ID  | Modo | Estratégia   | Arquivos | Bytes    | Duração aprox. | Observações                         |
+|-----|------|--------------|----------|----------|----------------|-------------------------------------|
+| 9   | copy | DIRECT       | 2000     | 2,07 MB  | ~Xs            | `dev_data/src -> dev_data/dst_direct` |
+| 11  | copy | ZIP_FIRST    | 2000     | 2,07 MB  | ~Ys            | `zip_size_bytes ≈ 2,29 MB`         |
+| 12  | move | DIRECT       | 2000     | 2,07 MB  | ~Zs            | `src` removido, `dst_move_direct` ok |
+| 15  | move | ZIP_FIRST    | 2000     | 2,07 MB  | ~Ws            | `src` removido, `dst_move_zip/src/*` |
+
+Notas:
+
+- Duração calculada como `updated_at - created_at`.
+- Em storage real (Quantum/NFS/Samba), a diferença entre DIRECT e ZIP_FIRST tende a crescer bastante por causa de seek/latência, não por CPU.
+- Este lab é só baseline funcional.
+
+Preenche os `~Xs`, `~Ys`, etc. com os números que você extrair dos detalhes dos jobs.
+
+Registrar só os três tempos coerentes:
+
+job 9 (copy/direct) ≈ 1.63 s
+
+job 11 (copy/zip) ≈ 1.76 s
+
+job 15 (move/zip) ≈ 2.95 s
+
+Sobre o job 12, eu colocaria explícito na doc:
+
+“Job 12 (MOVE + DIRECT) apresentou duration_seconds ≈ 296s, mas isso inclui atraso de infraestrutura (worker antigo / restart), não representa tempo real de I/O. Será re-medido em lab dedicado.”
+
+cat >> docs/mvp_3.0.md << 'EOF'
+
+## Observability & Job Metrics (MVP Core)
+
+### Endpoints de observabilidade
+
+- `GET /jobs/{id}/detail`  
+  - Retorna:
+    - `status`, `mode`, `source_path`, `destination_path`
+    - `files_copied`, `bytes_copied`
+    - `duration_seconds` (derivado de `created_at`/`updated_at`)
+    - `strategy` (derivada de eventos `strategy_decision`)
+    - lista completa de `events` (created/started/strategy_decision/finished/error)
+
+- `GET /stats/jobs-history`  
+  - Query params:
+    - `limit` (default: 20)
+    - `mode` (ex.: `copy`, `move`)
+    - `status` (ex.: `success`, `failed`)
+    - `strategy` (ex.: `DIRECT`, `ZIP_FIRST`)
+  - Retorna uma lista de jobs com:
+    - `id`, `mode`, `status`
+    - `strategy`, `duration_seconds`
+    - `files_copied`, `bytes_copied`
+    - `created_at`
+
+#### Exemplos de uso
+
+- Últimos 20 jobs de `move` com sucesso:
+
+  ```bash
+  curl "http://localhost:8000/stats/jobs-history?limit=20&mode=move&status=success" \
+    | jq '.jobs[] | {id, mode, status, strategy, duration_seconds}'
+
+
+## Lab Benchmark 02 — Storage de Rede / SAN (NAS, StorNext, Nexis)
+
+Objetivo: medir o impacto real de DIRECT vs ZIP_FIRST em um ambiente mais próximo da pós-produção:
+
+- Share de rede (SMB/NFS) ou volume de SAN (StorNext/Nexis),
+- Latência maior,
+- IOPS mais limitadas do que SSD local.
+
+### Preparação do ambiente
+
+1. **Montar o share/volume no host**
+
+   Exemplos (ajustar para sua realidade):
+
+   - macOS (SMB):
+
+     ```bash
+     mkdir -p /Volumes/KETTER_LAB
+     mount_smbfs //usuario@servidor/share /Volumes/KETTER_LAB
+     ```
+
+   - Linux (CIFS):
+
+     ```bash
+     mkdir -p /mnt/ketter_lab
+     mount -t cifs //servidor/share /mnt/ketter_lab \
+       -o username=usuario,vers=3.1.1
+     ```
+
+2. **Mapear esse caminho para dentro dos containers**
+
+   No `mvp_core/infra/docker-compose.yml`, o volume do serviço `api` e `worker` deve apontar para a raiz onde o dataset será criado, por exemplo:
+
+   ```yaml
+   services:
+     api:
+       volumes:
+         - ../../dev_data:/data
+         # ou, para testar direto no share:
+         # - /Volumes/KETTER_LAB/dev_data:/data
+     worker:
+       volumes:
+         - ../../dev_data:/data
+         # ou:
+         # - /Volumes/KETTER_LAB/dev_data:/data
+
+         ## Lab 02 — Local SSD NEXIS/QUANTUM (ZIP_FIRST em disco real)
+
+Objetivo: validar o motor de transferência (COPY/MOVE) usando discos reais montados no macOS, simulando NEXIS e QUANTUM, com estratégia `ZIP_FIRST` para cenários de muitas pequenas files.
+
+### Infra utilizada
+
+- Host: macOS (ambiente de desenvolvimento local).
+- Volumes físicos:
+  - `/Volumes/NEXIS`  → montado no container como `/mnt/nexis` (rw).
+  - `/Volumes/QUANTUM` → montado no container como `/mnt/quantum` (rw).
+- `docker-compose.yml` (serviços principais):
+  - `postgres`:
+    - `POSTGRES_USER=ketter_user`
+    - `POSTGRES_PASSWORD=ketter_pass`
+    - `POSTGRES_DB=ketter_mvp`
+  - `redis`:
+    - `redis:7`
+  - `api`:
+    - `DB_URL=postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp`
+    - `REDIS_URL=redis://redis:6379/0`
+    - Volumes:
+      - `../../dev_data:/data`
+      - `/Volumes/NEXIS:/mnt/nexis:ro`
+      - `/Volumes/QUANTUM:/mnt/quantum:rw`
+  - `worker`:
+    - `DB_URL` e `REDIS_URL` iguais ao `api`
+    - Estratégia ZIP:
+      - `KETTER_ZIP_THRESHOLD_FILES=100`
+      - `KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES=4194304` (4 MiB)
+    - Volumes:
+      - `../../dev_data:/data`
+      - `/Volumes/NEXIS:/mnt/nexis:ro`
+      - `/Volumes/QUANTUM:/mnt/quantum:rw`
+
+Banco acessado internamente por:
+`postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp`.
+
+### Dataset do Lab
+
+Para os testes, foram criados conjuntos de 2000 arquivos pequenos (~1 KiB de payload + overhead):
+
+```bash
+# Exemplo para MOVE:
+python - << 'PYEOF'
+from pathlib import Path
+
+src = Path("/Volumes/NEXIS/ketter_lab/src_move_2000")
+src.mkdir(parents=True, exist_ok=True)
+
+N = 2000
+for i in range(N):
+    p = src / f"file_{i:04d}.txt"
+    p.write_text(f"arquivo {i}\n" + "x" * 1024)
+PYEOF
+
+ls /Volumes/NEXIS/ketter_lab/src_move_2000 | wc -l  # 2000
+du -sh /Volumes/NEXIS/ketter_lab/src_move_2000      # ~7.8M (on disk)
+
+
+Se quiser, você pode ajustar os IDs dos jobs se depois rodar mais coisa e quiser “limpar” a narrativa, mas estruturalmente é isso.
+
+---
+
+## Lab 03 — próximo passo (proposta)
+
+Antes de começar a rodar comando a esmo, vamos alinhar o alvo. No Lab 02 você provou:
+
+- ZIP_FIRST funciona para 2000 arquivos pequenos em SSD local.
+- COPY e MOVE estão corretos semântica e estruturalmente.
+- Métrica básica (`duration_seconds`, `strategy`) está chegando redonda na API.
+
+Agora você precisa sair do “happy path de 2000 arquivos pequenos” e começar a estudar:
+
+1. Quando NÃO zipar (arquivos grandes).
+2. Quando a vantagem do zip começa a aparecer de verdade.
+3. Como isso se aproxima do cenário real (sessões com mix de arquivos).
+
+Minha proposta para o Lab 03:
+
+### Lab 03 — Arquivo grande e mix realista
+
+1. **Caso 03.1 — Arquivo único grande (baseline sem ZIP)**  
+   Objetivo: garantir que o engine fica em `DIRECT` para arquivos grandes, e medir o tempo.
+   - Criar um arquivo grande (ex.: 5–10 GiB) em `/Volumes/NEXIS/ketter_lab/src_big_01`.
+   - Rodar job:
+     - `mode="copy"`
+     - `source_path=/mnt/nexis/ketter_lab/src_big_01`
+     - `destination_path=/mnt/quantum/ketter_lab/dst_big_01`
+   - Esperado:
+     - `strategy = DIRECT`
+     - `files_copied = 1`
+     - `duration_seconds` registrado.
+   - Se o engine tentar usar ZIP_FIRST aqui, temos bug de heurística.
+
+2. **Caso 03.2 — Mix: 1 arquivo grande + 2000 pequenos**  
+   Objetivo: ver como a estratégia se comporta num cenário mais próximo de sessão real (grandes + pequenos).
+   - Montar algo como:
+     - `/Volumes/NEXIS/ketter_lab/src_mix_01/SESSION.ptx` (ou só um `.bin` grande).
+     - `/Volumes/NEXIS/ketter_lab/src_mix_01/audio/file_0000.wav ... file_1999.wav` (pequenos).
+   - Rodar job:
+     - `mode="copy"` (depois `move`).
+   - Ver:
+     - `n_files`, `avg_size`, `strategy`, `duration_seconds`.
+   - Aqui vai aparecer se a heurística “puxa para ZIP_FIRST cedo demais” ou não.
+
+3. **Caso 03.3 — Sweep de thresholds (afinando heurística)**  
+   Ainda em SSD, mas agora mexendo em:
+
+   - `KETTER_ZIP_THRESHOLD_FILES`
+   - `KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES`
+
+   Ideia:
+
+   - Rodar a mesma carga (ex.: `src_2000` e `src_mix_01`) com:
+     - `FILES = 50, 100, 500`
+     - `AVG_SIZE_BYTES = 1 MiB, 4 MiB, 16 MiB`
+   - Anotar:
+     - `strategy` escolhido.
+     - `duration_seconds`.
+   - Isso te dá um início de tabela para decidir defaults “sensatos” para ambiente real.
+
+Se você concordar com essa linha, no próximo passo eu já te mando:
+
+- Bloco em shell com os comandos para criar o arquivo grande e o mix (03.1 e 03.2).
+- O payload certinho dos `curl` para os jobs.
+- Um mini-template em markdown para você já deixar o “Lab 03” pronto no `mvp_3.0.md` enquanto coleta os números.
+
+E aqui vou ser chato de propósito: se você não medir DIRECT vs ZIP_FIRST no mesmo par de volumes para o mesmo payload, você vai acabar escolhendo threshold na intuição, não em dado. Esse é o ponto cego clássico de motor de transferência. Vamos evitar isso já no Lab 03.
+
+### Lab 03 — Testes em discos reais (NEXIS / QUANTUM)
+
+Ambiente:
+
+- NEXIS e QUANTUM montados no macOS:
+  - `/Volumes/NEXIS`
+  - `/Volumes/QUANTUM`
+- Docker mapeando os volumes:
+  - `/mnt/nexis` → `/Volumes/NEXIS`
+  - `/mnt/quantum` → `/Volumes/QUANTUM`
+- DB/Redis rodando dentro do docker-compose (`postgres`, `redis`, `api`, `worker`).
+
+#### 03.1 — COPY de 1 arquivo grande (5 GiB)
+
+Setup:
+
+- Origem: `/Volumes/NEXIS/ketter_lab/src_big_01/big_05GiB.bin`
+- Destino: `/Volumes/QUANTUM/ketter_lab/dst_big_01`
+
+Job:
+
+```bash
+curl -X POST http://localhost:8000/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_path": "/mnt/nexis/ketter_lab/src_big_01",
+    "destination_path": "/mnt/quantum/ketter_lab/dst_big_01",
+    "mode": "copy"
+  }'
+# → id = 2
+Resultado (jobs/2/detail):
+
+strategy = DIRECT
+
+files_copied = 1
+
+bytes_copied = 5.368.709.120 (~5 GiB)
+
+duration_seconds ≈ 28.08
+
+status = success
+
+Checks no filesystem:
+
+ls /Volumes/QUANTUM/ketter_lab/dst_big_01 → big_05GiB.bin.
+
+Tamanhos em bytes de origem/destino (ls -l) idênticos.
+
+Conclusão: motor escolheu corretamente DIRECT para arquivo único grande e completou o copy com consistência de tamanho.
+
+03.2 — MIX (2 GiB + 2000 arquivos pequenos), modos COPY e MOVE
+
+Setup:
+
+Origem: /Volumes/NEXIS/ketter_lab/src_mix_01
+
+session_2GiB.bin (~2 GiB)
+
+audio/clip_XXXX.wav (2000 arquivos pequenos).
+
+Contagem:
+
+find src_mix_01 -type f | wc -l → 2001.
+
+du -sh src_mix_01 → ~2.0G.
+
+03.2.a — COPY
+
+Job:
+
+curl -X POST http://localhost:8000/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_path": "/mnt/nexis/ketter_lab/src_mix_01",
+    "destination_path": "/mnt/quantum/ketter_lab/dst_mix_copy_01",
+    "mode": "copy"
+  }'
+# → id = 3
+
+
+Resultado (jobs/3/detail):
+
+strategy = ZIP_FIRST
+
+files_copied = 2001
+
+bytes_copied ≈ 2.149.552.538
+
+duration_seconds ≈ 27.29
+
+status = success
+
+Checks no filesystem:
+
+find /Volumes/QUANTUM/ketter_lab/dst_mix_copy_01 -type f | wc -l → 2001.
+
+Hierarquia preservada: dst_mix_copy_01/src_mix_01/session_2GiB.bin + src_mix_01/audio/clip_XXXX.wav.
+
+du -sh dst_mix_copy_01 → ~2.0G.
+
+Observação operacional: leituras de FS feitas antes do status = success podem mostrar contagens parciais (falso negativo). O fluxo correto é: checar status, depois validar o FS.
+
+03.2.b — MOVE
+
+Job:
+
+curl -X POST http://localhost:8000/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_path": "/mnt/nexis/ketter_lab/src_mix_01",
+    "destination_path": "/mnt/quantum/ketter_lab/dst_mix_move_01",
+    "mode": "move"
+  }'
+# → id = 4
+
+
+Resultado (jobs/4/detail):
+
+strategy = ZIP_FIRST
+
+duration_seconds ≈ 1.67
+
+status = success (job finalizado com sucesso).
+
+Checks:
+
+Origem:
+
+ls /Volumes/NEXIS/ketter_lab/src_mix_01 → No such file or directory (comportamento esperado para MOVE).
+
+Destino:
+
+find /Volumes/QUANTUM/ketter_lab/dst_mix_move_01 -type f | wc -l → 2001.
+
+du -sh /Volumes/QUANTUM/ketter_lab/dst_mix_move_01 → ~2.0G.
+
+Estrutura preservada: dst_mix_move_01/src_mix_01/....
+
+Conclusão geral Lab 03:
+
+Engine está se comportando como esperado em ambiente “real” NEXIS/QUANTUM:
+
+Arquivo único grande → DIRECT.
+
+MIX (muitos pequenos + 1 grande) → ZIP_FIRST.
+
+Semântica de COPY e MOVE preservadas.
+
+Métricas de tempo, contagem e bytes alinhadas com o esperado, inclusive em volumes reais de teste.

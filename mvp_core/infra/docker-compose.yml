@@ -1,17 +1,19 @@
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ketter_user
       POSTGRES_PASSWORD: ketter_pass
-      POSTGRES_DB: ketter_db
+      POSTGRES_DB: ketter_mvp
     ports:
       - "5432:5432"
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - infra_pg_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7
+    restart: unless-stopped
     ports:
       - "6379:6379"
 
@@ -19,35 +21,39 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile.mvp
+      target: api
+    restart: unless-stopped
+    environment:
+      DB_URL: postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
     depends_on:
       - postgres
       - redis
-    environment:
-      DATABASE_URL: postgresql://ketter_user:ketter_pass@postgres:5432/ketter_db
-      REDIS_URL: redis://redis:6379/0
-    command: ["uvicorn", "mvp_core.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-    ports:
-      - "8000:8000"
     volumes:
       - ../../dev_data:/data
+      - /Volumes/NEXIS:/mnt/nexis:rw
+      - /Volumes/QUANTUM:/mnt/quantum:rw
 
   worker:
     build:
       context: ../..
       dockerfile: Dockerfile.mvp
+      target: worker
+    restart: unless-stopped
+    environment:
+      DB_URL: postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp
+      REDIS_URL: redis://redis:6379/0
+      KETTER_ZIP_THRESHOLD_FILES: 100
+      KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES: 4194304
     depends_on:
       - postgres
       - redis
-    environment:
-      DATABASE_URL: postgresql://ketter_user:ketter_pass@postgres:5432/ketter_db
-      REDIS_URL: redis://redis:6379/0
-      WORKER_POLL_INTERVAL: "2.0"
-      # ZIP agressivo: qualquer fanout > 1 já cai em ZIP_FIRST
-      KETTER_ZIP_THRESHOLD_FILES: "1"
-      KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES: "4194304"
-    command: ["python", "-m", "mvp_core.worker.run"]
     volumes:
       - ../../dev_data:/data
+      - /Volumes/NEXIS:/mnt/nexis:rw
+      - /Volumes/QUANTUM:/mnt/quantum:rw
 
 volumes:
-  pg_data:
+  infra_pg_data:

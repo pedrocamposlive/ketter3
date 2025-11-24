@@ -1,21 +1,50 @@
-FROM python:3.11-slim
+# ------------------------------------------------------------
+# Ketter 3.0 - Dockerfile MVP (API + Worker)
+# ------------------------------------------------------------
+# Estrutura:
+#   base   -> deps Python + código mvp_core
+#   api    -> imagem final da API (uvicorn)
+#   worker -> imagem final do worker (python -m mvp_core.worker.run)
+# ------------------------------------------------------------
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+FROM python:3.11-slim AS base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Dependências básicas de build (se precisarmos depois)
+# Dependências de build mínimas
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+      build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala as dependências do MVP core
+# Instalar dependências da aplicação
 COPY mvp_core/requirements.txt /app/mvp_core/requirements.txt
 RUN pip install --no-cache-dir -r /app/mvp_core/requirements.txt
 
-# Copia apenas o núcleo MVP
+# Copiar código da aplicação
 COPY mvp_core /app/mvp_core
 
-# Comando padrão: subir a API
+# ------------------------------------------------------------
+# Stage: api
+# ------------------------------------------------------------
+FROM base AS api
+
+WORKDIR /app
+
+EXPOSE 8000
+
+# Entrypoint padrão da API (pode ser sobrescrito pelo docker-compose)
 CMD ["uvicorn", "mvp_core.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# ------------------------------------------------------------
+# Stage: worker
+# ------------------------------------------------------------
+FROM base AS worker
+
+WORKDIR /app
+
+# Entrypoint padrão do worker
+CMD ["python", "-m", "mvp_core.worker.run"]
