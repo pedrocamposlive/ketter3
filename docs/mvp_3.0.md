@@ -1104,3 +1104,29 @@ Tanto para estratégia `DIRECT` quanto para `ZIP_FIRST`.
   - sempre `destination_root/<basename(source)>/...`.
 - Isso evita surpresas no Ketter UI / relatórios, que agora podem assumir um esquema
   consistente tanto para jobs zipados quanto diretos.
+
+### Semântica de overwrite (MVP — modo seguro)
+
+Regra oficial para o MVP 3.0:
+
+- Para jobs cujo `source` é um diretório:
+  - O destino lógico é sempre `destination_root/<basename(source)>`.
+  - **Se este diretório de destino já existir**, o job **FALHA imediatamente**,
+    sem tocar em nenhum arquivo, com erro do tipo:
+    - `Destination already exists: <dest_root>/<basename(source)>`
+
+Motivação:
+
+- Evitar sobrescrita acidental de diárias (“envia de novo” sem pensar).
+- Forçar que qualquer comportamento de overwrite seja **explícito** no futuro
+  (flag, modo avançado, política específica de reprocessamento).
+- Manter a engine previsível para reprocessamento, retries e integração com
+  fluxos Pro Tools / diárias.
+
+  ## Lab07 — Overwrite & idempotência (planejado)
+
+Objetivo: exercitar e validar a semântica de overwrite em modo seguro, cobrindo:
+
+- Execução repetida do mesmo job (mesmo source/dest).
+- Comportamento de `jobs-history` em runs repetidos.
+- Comportamento quando o destino já existe antes mesmo do primeiro job.
