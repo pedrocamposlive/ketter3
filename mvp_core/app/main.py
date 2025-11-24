@@ -62,7 +62,7 @@ class JobDetailResponse(BaseModel):
     bytes_copied: Optional[int]
     created_at: datetime
     updated_at: datetime
-    # Novos campos de observabilidade leve
+    # Observabilidade leve
     duration_seconds: Optional[float] = None
     strategy: Optional[str] = None
     events: List[JobEventSchema]
@@ -85,6 +85,21 @@ class JobsSummaryResponse(BaseModel):
     last_job: Optional[JobSummaryItem]
     last_success: Optional[JobSummaryItem]
     last_failed: Optional[JobSummaryItem]
+
+
+class JobHistoryItem(BaseModel):
+    id: int
+    mode: str
+    status: str
+    strategy: Optional[str]
+    duration_seconds: Optional[float]
+    created_at: datetime
+    files_copied: Optional[int]
+    bytes_copied: Optional[int]
+
+
+class JobsHistoryResponse(BaseModel):
+    jobs: List[JobHistoryItem]
 
 
 # ---------------------------------------------------------------------------
@@ -245,3 +260,66 @@ def jobs_summary(db: Session = Depends(get_session)) -> JobsSummaryResponse:
         last_success=_job_to_summary_item(last_success) if last_success else None,
         last_failed=_job_to_summary_item(last_failed) if last_failed else None,
     )
+
+
+@app.get("/stats/jobs-history", response_model=JobsHistoryResponse)
+def jobs_history(
+    limit: int = 20,
+    db: Session = Depends(get_session),
+) -> JobsHistoryResponse:
+    """
+    Retorna histórico dos últimos N jobs com:
+      - id, mode, status
+      - duration_seconds (calculado)
+      - strategy (derivada dos eventos)
+      - created_at
+      - files_copied / bytes_copied
+
+    Útil para calibração de thresholds e observabilidade básica.
+    """
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="limit must be > 0")
+
+    jobs = (
+        db.query(Job)
+        .order_by(Job.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    if not jobs:
+        return JobsHistoryResponse(jobs=[])
+
+    job_ids = [j.id for j in jobs]
+
+    events = (
+        db.query(JobEvent)
+        .filter(JobEvent.job_id.in_(job_ids))
+        .order_by(JobEvent.created_at.asc())
+        .all()
+    )
+
+    events_by_job: Dict[int, List[JobEvent]] = {jid: [] for jid in job_ids}
+    for ev in events:
+        events_by_job.setdefault(ev.job_id, []).append(ev)
+
+    history_items: List[JobHistoryItem] = []
+    for job in jobs:
+        evs = events_by_job.get(job.id, [])
+        duration_seconds = _compute_duration_seconds(job)
+        strategy = _extract_strategy_from_events(evs)
+
+        history_items.append(
+            JobHistoryItem(
+                id=job.id,
+                mode=job.mode,
+                status=job.status,
+                strategy=strategy,
+                duration_seconds=duration_seconds,
+                created_at=job.created_at,
+                files_copied=job.files_copied,
+                bytes_copied=job.bytes_copied,
+            )
+        )
+
+    return JobsHistoryResponse(jobs=history_items)
