@@ -979,3 +979,47 @@ Nesta iteração, o foco é:
 - [ ] A partir dos resultados, decidir:
   - Naming padronizado para tipos de erro (ex.: `source_not_found`, `dest_permission_denied`, `io_error`).
   - Ajustes de mapeamento de exceções → eventos.
+
+  ### Lab05 — Cenários de falha (MVP infra)
+
+**L05-01 — Source inexistente**
+
+- Job: `/data/source_does_not_exist_01 → /data/dst_error_source_missing_01` (mode=copy).
+- Resultado:
+  - Destino `dev_data/dst_error_source_missing_01` **não foi criado**.
+  - Job marcado como `failed` (ver `/jobs/10/detail`).
+  - Nenhum arquivo copiado.
+- Conclusão:
+  - Fluxo mínimo de erro para “source inexistente” está funcionando: não suja o destino.
+
+**L05-02 — Tentativa de “destino read-only” (QUANTUM → NEXIS)**
+
+- Job: `/mnt/quantum/ketter_lab/src_perm_ro_01 → /mnt/nexis/ketter_lab/dst_perm_ro_01` (mode=copy).
+- Expectativa: erro de permissão ao escrever no NEXIS.
+- Achados:
+  - Dentro do container, ambos mounts aparecem como `rw`:
+
+    - `/run/host_mark/Volumes on /mnt/quantum type fakeowner (rw,...)`
+    - `/run/host_mark/Volumes on /mnt/nexis type fakeowner (rw,...)`
+
+  - Job `11` foi concluído com sucesso:
+
+    - `status = "success"`
+    - `files_copied = 20`
+    - `bytes_copied = 20790`
+    - Evento `finished` sem erro.
+  - Destino `/Volumes/NEXIS/ketter_lab/dst_perm_ro_01` contém os 20 arquivos esperados (~80K).
+
+- Conclusão:
+  - Este teste **não validou permissão negada**.  
+  - O bind-mount `:ro` para `/Volumes/NEXIS` não é respeitado pelo driver `fakeowner` do Docker Desktop/macOS neste setup.
+  - Cenários de `PermissionError` ainda não foram exercitados de forma confiável; precisamos de:
+    - OU um ambiente Linux “real” com mount `ro`/ACLs,
+    - OU um cenário de teste sintético que force erro de escrita dentro do container (ex.: diretório com `chmod 555` / path protegido).
+
+**TODO (Lab05)**
+
+- [ ] Criar cenário reprodutível de `PermissionError` dentro do container (sem depender de `/Volumes` + `fakeowner`).
+- [ ] Garantir que jobs com `PermissionError` sejam marcados como `failed` com:
+  - `files_copied`/`bytes_copied` coerentes,
+  - evento `error` com mensagem descritiva.
