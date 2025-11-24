@@ -1130,3 +1130,297 @@ Objetivo: exercitar e validar a semântica de overwrite em modo seguro, cobrindo
 - Execução repetida do mesmo job (mesmo source/dest).
 - Comportamento de `jobs-history` em runs repetidos.
 - Comportamento quando o destino já existe antes mesmo do primeiro job.
+
+
+cat >> docs/mvp_3.0.md << 'EOF'
+
+## Lab07 — Overwrite & Idempotência (DIRECT vs ZIP_FIRST)
+
+### Objetivo
+
+Validar a política de overwrite segura do MVP 3.0:
+
+- Para **diretórios**, o destino lógico é sempre:
+  - `destination_root/<basename(source_path)>`
+- Se esse diretório já existir, o job deve:
+  - **falhar imediatamente** com `DestinationExistsError`,
+  - sem copiar nada,
+  - sem apagar nada na origem.
+
+A política deve valer para ambas as estratégias:
+
+- `DIRECT`
+- `ZIP_FIRST`
+
+---
+
+### 1. Cenário ZIP_FIRST — muitos arquivos pequenos
+
+#### Dataset
+
+- Origem: `dev_data/src_overwrite_zip_01`
+  - 2000 arquivos `.txt` pequenos (~1 KiB).
+- Destino raiz: `dev_data/dst_overwrite_zip_01`.
+
+Montagem dentro dos containers:
+
+- `/data` → `dev_data` (bind mount).
+- `source_path = "/data/src_overwrite_zip_01"`.
+- `destination_path = "/data/dst_overwrite_zip_01"`.
+
+#### Job 26 — primeiro COPY (SUCCESS, ZIP_FIRST)
+
+```json
+{
+  "id": 26,
+  "source_path": "/data/src_overwrite_zip_01",
+  "destination_path": "/data/dst_overwrite_zip_01",
+  "mode": "copy",
+  "status": "success",
+  "files_copied": 2000,
+  "bytes_copied": 2072890,
+  "strategy": "ZIP_FIRST"
+}
+## Lab07 — Overwrite & Idempotência (DIRECT vs ZIP_FIRST)
+
+### Objetivo
+
+Validar a política de overwrite segura do MVP 3.0:
+
+- Para **diretórios**, o destino lógico é sempre:
+  - `destination_root/<basename(source_path)>`
+- Se esse diretório já existir, o job deve:
+  - **falhar imediatamente** com `DestinationExistsError`,
+  - sem copiar nada,
+  - sem apagar nada na origem.
+
+A política deve valer para ambas as estratégias:
+
+- `DIRECT`
+- `ZIP_FIRST`
+
+---
+
+### 1. Cenário ZIP_FIRST — muitos arquivos pequenos
+
+#### Dataset
+
+- Origem: `dev_data/src_overwrite_zip_01`
+  - 2000 arquivos `.txt` pequenos (~1 KiB).
+- Destino raiz: `dev_data/dst_overwrite_zip_01`.
+
+Montagem dentro dos containers:
+
+- `/data` → `dev_data` (bind mount).
+- `source_path = "/data/src_overwrite_zip_01"`.
+- `destination_path = "/data/dst_overwrite_zip_01"`.
+
+#### Job 26 — primeiro COPY (SUCCESS, ZIP_FIRST)
+
+```json
+{
+  "id": 26,
+  "source_path": "/data/src_overwrite_zip_01",
+  "destination_path": "/data/dst_overwrite_zip_01",
+  "mode": "copy",
+  "status": "success",
+  "files_copied": 2000,
+  "bytes_copied": 2072890,
+  "strategy": "ZIP_FIRST"
+}
+Eventos relevantes:
+
+created – job criado via API.
+
+started – worker pegou o job.
+
+strategy_decision – strategy=ZIP_FIRST, n_files=2000, total_bytes=2072890, avg_size≈1 KiB.
+
+finished –
+"Job finished successfully: 2000 files, 2072890 bytes (strategy=ZIP_FIRST, zip_size_bytes=2360912)".
+
+Layout no filesystem host:
+
+dev_data/dst_overwrite_zip_01/src_overwrite_zip_01/file_0000.txt ... file_1999.txt.
+
+Conclusão: ZIP_FIRST funciona, layout canônico dest_root/<basename(source)>/... respeitado.
+
+Job 27 — segundo COPY (FAILED, overwrite detectado)
+Mesmo payload:
+
+source_path = "/data/src_overwrite_zip_01".
+
+destination_path = "/data/dst_overwrite_zip_01".
+
+mode = "copy".
+
+Resposta detalhada:
+
+json
+Copy code
+{
+  "id": 27,
+  "source_path": "/data/src_overwrite_zip_01",
+  "destination_path": "/data/dst_overwrite_zip_01",
+  "mode": "copy",
+  "status": "failed",
+  "strategy": "ZIP_FIRST",
+  "events": [
+    { "event_type": "created", "message": "Job created via API" },
+    { "event_type": "started", "message": "Job started by worker" },
+    {
+      "event_type": "strategy_decision",
+      "message": "strategy=ZIP_FIRST, n_files=2000, total_bytes=2072890, avg_size=1036.445"
+    },
+    {
+      "event_type": "error",
+      "message": "Job failed: Destination already exists: /data/dst_overwrite_zip_01/src_overwrite_zip_01 (strategy=ZIP_FIRST)"
+    }
+  ]
+}
+Conclusão ZIP_FIRST:
+
+Guard de overwrite (assert_overwrite_safe) detecta que:
+
+/data/dst_overwrite_zip_01/src_overwrite_zip_01 já existe.
+
+Job é marcado como failed com mensagem clara, sem retransferir nada.
+
+Política de overwrite está ativa para ZIP_FIRST.
+
+2. Cenário DIRECT — poucos arquivos (forçando DIRECT)
+Dataset
+Origem: dev_data/src_overwrite_direct_01
+
+10 arquivos .txt pequenos (~1 KiB).
+
+Destino raiz: dev_data/dst_overwrite_direct_01.
+
+Montagem:
+
+source_path = "/data/src_overwrite_direct_01".
+
+destination_path = "/data/dst_overwrite_direct_01".
+
+Com N_files = 10 e tamanho médio pequeno, o planner escolhe DIRECT.
+
+Job 31 — primeiro COPY (SUCCESS, DIRECT)
+json
+Copy code
+{
+  "id": 31,
+  "source_path": "/data/src_overwrite_direct_01",
+  "destination_path": "/data/dst_overwrite_direct_01",
+  "mode": "copy",
+  "status": "success",
+  "files_copied": 10,
+  "bytes_copied": 10340,
+  "strategy": "DIRECT"
+}
+Eventos:
+
+strategy_decision – "strategy=DIRECT, n_files=10, total_bytes=10340, avg_size=1034.0".
+
+finished – "Job finished successfully: 10 files, 10340 bytes (strategy=DIRECT)".
+
+Layout esperado:
+
+dev_data/dst_overwrite_direct_01/src_overwrite_direct_01/file_0000.txt ... file_0009.txt.
+
+Ou seja: DIRECT respeita o mesmo layout canônico de pastas que ZIP_FIRST.
+
+Job 32 — segundo COPY (FAILED, overwrite detectado)
+Mesmo payload:
+
+source_path = "/data/src_overwrite_direct_01".
+
+destination_path = "/data/dst_overwrite_direct_01".
+
+mode = "copy".
+
+Resposta:
+
+json
+Copy code
+{
+  "id": 32,
+  "source_path": "/data/src_overwrite_direct_01",
+  "destination_path": "/data/dst_overwrite_direct_01",
+  "mode": "copy",
+  "status": "failed",
+  "strategy": "DIRECT",
+  "events": [
+    { "event_type": "created", "message": "Job created via API" },
+    { "event_type": "started", "message": "Job started by worker" },
+    {
+      "event_type": "strategy_decision",
+      "message": "strategy=DIRECT, n_files=10, total_bytes=10340, avg_size=1034.0"
+    },
+    {
+      "event_type": "error",
+      "message": "Job failed: Destination already exists: /data/dst_overwrite_direct_01/src_overwrite_direct_01 (strategy=DIRECT)"
+    }
+  ]
+}
+Conclusão DIRECT:
+
+Mesma política de overwrite aplicada:
+
+Mesmo destino lógico,
+
+Mesmo tipo de erro,
+
+Sem simetria quebrada entre DIRECT e ZIP_FIRST.
+
+3. Contrato de overwrite do MVP 3.0
+A partir dos resultados do Lab07, o contrato oficial de overwrite no Ketter 3.0 — MVP Core é:
+
+Diretórios (source_path é diretório)
+
+Destino lógico:
+
+destination_root = destination_path / basename(source_path).
+
+Se destination_root já existir:
+
+Job falha imediatamente com DestinationExistsError.
+
+status = "failed".
+
+Um JobEvent de tipo error é registrado com a mensagem:
+
+"Job failed: Destination already exists: <destination_root> (strategy=...)".
+
+Nenhum arquivo é modificado na origem ou no destino.
+
+Isso vale tanto para:
+
+strategy = "DIRECT"
+
+strategy = "ZIP_FIRST"
+
+Arquivos únicos (source_path é arquivo)
+
+Destino lógico:
+
+destination_root = destination_path.
+
+Arquivo em destination_path / basename(source_path).
+
+A política detalhada de overwrite para arquivos únicos será coberta em um lab futuro
+(Lab08+), após estabilizar todos os cenários de diretórios.
+
+Essa política garante:
+
+Idempotência segura para reenvio de diárias/sessões:
+
+repetir o mesmo job não sobrescreve dados sem intenção explícita.
+
+Layout previsível para UI, relatórios, DKU e integrações.
+
+Um único ponto de decisão e checagem de overwrite:
+
+módulo layout + guard do engine,
+
+sem duplicar lógica em API, worker ou UI.
+
