@@ -286,3 +286,10 @@ Se você colar esse bloco no `docs/mvp_3.0.md`, a estratégia fica explicitament
 - E um roadmap de implementação coerente.
 
 Próximo passo, depois de registrar isso no doc, é a gente partir para o `planner.py` + ajuste do worker, mas agora com o contrato já escrito e não improvisado.
+
+### Experimento inicial de ZIP_FIRST (lab)
+
+- Dataset: 2000 arquivos ~1 KiB (total ~2 MB).
+- DIRECT: 2000 arquivos copiados com sucesso, fanout intacto em `/data/dst_direct`.
+- ZIP_FIRST (KETTER_ZIP_THRESHOLD_FILES=1): zip intermediário `~2.29 MB`, extração em `/data/dst_zip2/src`, mesma contagem de arquivos e bytes.
+- Próximo passo: medir tempo de job (DIRECT vs ZIP_FIRST) em storage real de lab para calibrar thresholds.
