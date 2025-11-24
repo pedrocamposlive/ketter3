@@ -265,23 +265,37 @@ def jobs_summary(db: Session = Depends(get_session)) -> JobsSummaryResponse:
 @app.get("/stats/jobs-history", response_model=JobsHistoryResponse)
 def jobs_history(
     limit: int = 20,
+    mode: Optional[str] = None,
+    status: Optional[str] = None,
+    strategy: Optional[str] = None,
     db: Session = Depends(get_session),
 ) -> JobsHistoryResponse:
     """
-    Retorna histórico dos últimos N jobs com:
-      - id, mode, status
-      - duration_seconds (calculado)
-      - strategy (derivada dos eventos)
-      - created_at
-      - files_copied / bytes_copied
+    Retorna histórico dos últimos N jobs com filtros opcionais.
 
-    Útil para calibração de thresholds e observabilidade básica.
+    Query params:
+      - limit: quantidade de jobs (default 20)
+      - mode: filtra por mode ("copy", "move", etc.)
+      - status: filtra por status ("pending", "success", "failed", ...)
+      - strategy: filtra por estratégia ("DIRECT", "ZIP_FIRST", ...)
+
+    Observação:
+      - mode/status -> filtrados em SQL
+      - strategy -> filtrado em memória, pois é derivado de JobEvent
     """
     if limit <= 0:
         raise HTTPException(status_code=400, detail="limit must be > 0")
 
+    query = db.query(Job)
+
+    if mode:
+        query = query.filter(Job.mode == mode)
+
+    if status:
+        query = query.filter(Job.status == status)
+
     jobs = (
-        db.query(Job)
+        query
         .order_by(Job.created_at.desc())
         .limit(limit)
         .all()
@@ -304,17 +318,22 @@ def jobs_history(
         events_by_job.setdefault(ev.job_id, []).append(ev)
 
     history_items: List[JobHistoryItem] = []
+    strategy_filter = strategy
+
     for job in jobs:
         evs = events_by_job.get(job.id, [])
         duration_seconds = _compute_duration_seconds(job)
-        strategy = _extract_strategy_from_events(evs)
+        job_strategy = _extract_strategy_from_events(evs)
+
+        if strategy_filter and job_strategy != strategy_filter:
+            continue
 
         history_items.append(
             JobHistoryItem(
                 id=job.id,
                 mode=job.mode,
                 status=job.status,
-                strategy=strategy,
+                strategy=job_strategy,
                 duration_seconds=duration_seconds,
                 created_at=job.created_at,
                 files_copied=job.files_copied,
