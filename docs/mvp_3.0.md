@@ -1023,3 +1023,84 @@ Nesta iteração, o foco é:
 - [ ] Garantir que jobs com `PermissionError` sejam marcados como `failed` com:
   - `files_copied`/`bytes_copied` coerentes,
   - evento `error` com mensagem descritiva.
+
+  ### Lab05 — Cenários de falha (MVP infra, revisão)
+
+**L05-01 — Source inexistente**
+
+- Job: `/data/source_does_not_exist_01 → /data/dst_error_source_missing_01` (mode=copy).
+- Resultado observado:
+  - Destino `dev_data/dst_error_source_missing_01` **não foi criado**.
+  - `GET /jobs/10/detail` mostra o job como `failed` (sem arquivos copiados).
+- Conclusão:
+  - Fluxo mínimo de erro para “source inexistente” está funcionando: o engine não cria destino nem deixa lixo parcial.
+
+**L05-02 — Tentativa de “destino read-only” (QUANTUM → NEXIS)**
+
+- Job: `/mnt/quantum/ketter_lab/src_perm_ro_01 → /mnt/nexis/ketter_lab/dst_perm_ro_01` (mode=copy).
+- Expectativa teórica: erro de permissão ao escrever em NEXIS.
+- Achados práticos:
+  - Dentro do container, os mounts aparecem como:
+
+        /run/host_mark/Volumes on /mnt/quantum type fakeowner (rw,...)
+        /run/host_mark/Volumes on /mnt/nexis   type fakeowner (rw,...)
+
+  - `GET /jobs/11/detail`:
+
+    - `status = "success"`
+    - `files_copied = 20`
+    - `bytes_copied ≈ 20 KB`
+    - evento `finished` sem erro.
+
+  - No host, `/Volumes/NEXIS/ketter_lab/dst_perm_ro_01` contém os 20 arquivos.
+- Conclusão:
+  - Este teste **não validou cenário de permissão negada**.
+  - O bind-mount `:ro` em `/Volumes/...` está sendo neutralizado pelo driver `fakeowner` do Docker Desktop/macOS neste setup.
+  - Cenários de `PermissionError` reais ainda não foram exercitados; precisam de:
+    - ambiente Linux real com mount `ro`/ACLs reais **ou**
+    - cenários sintéticos dentro do container que forcem `PermissionError` sem depender de `/Volumes`.
+
+    ### Lab06 — Unificação de layout (DIRECT vs ZIP_FIRST)
+
+Objetivo: garantir que, para qualquer diretório de origem, o layout de destino seja
+sempre:
+
+- `destination_root/<basename(source)>/...`
+
+Tanto para estratégia `DIRECT` quanto para `ZIP_FIRST`.
+
+**Cenário 1 — Diretório grande (1 arquivo de 1 GiB, DIRECT)**
+
+- Source: `dev_data/src_big_01/big_01GiB.bin`
+- Job:
+  - `source_path = "/data/src_big_01"`
+  - `destination_path = "/data/dst_big_01_layout"`
+  - `mode = "copy"`
+- Resultado (`/jobs/12/detail`):
+  - `strategy = "DIRECT"`
+  - `status = "success"`
+  - `files_copied = 1`
+  - `bytes_copied = 1073741824`
+- Layout no filesystem host:
+  - `dev_data/dst_big_01_layout/src_big_01/big_01GiB.bin`
+  - `du -sh dev_data/src_big_01 dev_data/dst_big_01_layout` → ambos ≈ `1.0G`
+
+**Cenário 2 — Diretório com muitos arquivos pequenos (ZIP_FIRST)**
+
+- Source: `dev_data/src_small_01/file_0000.txt ... file_1999.txt`
+- Job:
+  - `source_path = "/data/src_small_01"`
+  - `destination_path = "/data/dst_small_zip_01"`
+  - `mode = "copy"`
+- Resultado:
+  - `strategy = "ZIP_FIRST"`
+  - `status = "success"`
+- Layout no filesystem host:
+  - `dev_data/dst_small_zip_01/src_small_01/file_XXXX.txt` (2000 arquivos)
+
+**Conclusão**
+
+- O layout de destino está unificado entre `DIRECT` e `ZIP_FIRST` para diretórios:
+  - sempre `destination_root/<basename(source)>/...`.
+- Isso evita surpresas no Ketter UI / relatórios, que agora podem assumir um esquema
+  consistente tanto para jobs zipados quanto diretos.
