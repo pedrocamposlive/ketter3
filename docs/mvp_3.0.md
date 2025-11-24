@@ -684,3 +684,298 @@ MIX (muitos pequenos + 1 grande) → ZIP_FIRST.
 Semântica de COPY e MOVE preservadas.
 
 Métricas de tempo, contagem e bytes alinhadas com o esperado, inclusive em volumes reais de teste.
+
+cat >> docs/mvp_3.0.md << 'EOF'
+
+## Lab04 — Estratégia ZIP_FIRST vs DIRECT em SSD local (NEXIS x QUANTUM)
+
+### Objetivo
+
+Validar o comportamento da heurística de estratégia (`ZIP_FIRST` vs `DIRECT`) e medir tempos reais de cópia/move em um cenário mais próximo do ambiente Nexis/Quantum, usando dois SSDs locais:
+
+- `/Volumes/NEXIS`  → montado como `/mnt/nexis` no container
+- `/Volumes/QUANTUM` → montado como `/mnt/quantum` no container
+
+O foco do Lab04 foi:
+
+1. Confirmar se a escolha de estratégia está coerente com o perfil dos dados:
+   - Muitos arquivos pequenos → `ZIP_FIRST`
+   - Poucos arquivos grandes → `DIRECT`
+2. Validar tempos de transferência em cenários representativos.
+3. Verificar coerência das estatísticas expostas pela API:
+   - `/jobs/{id}/detail`
+   - `/stats/jobs-history`
+
+---
+
+### Cenários testados
+
+#### 1. MOVE de 2000 arquivos pequenos (NEXIS → QUANTUM, ZIP_FIRST)
+
+- Setup:
+
+  - Origem:
+    - `/Volumes/NEXIS/ketter_lab/src_move_2000` (2000 arquivos `.txt` ~1 KiB)
+  - Destino:
+    - `/Volumes/QUANTUM/ketter_lab/dst_move_2000`
+  - Job:
+    - `mode: "move"`
+    - `source_path: "/mnt/nexis/ketter_lab/src_move_2000"`
+    - `destination_path: "/mnt/quantum/ketter_lab/dst_move_2000"`
+
+- Observações principais:
+
+  - Job:
+    - `id: 1`
+    - `strategy: "ZIP_FIRST"`
+    - `status: "success"`
+    - `files_copied: 2000`
+    - `bytes_copied: 2072890`
+    - `duration_seconds ≈ 3.38`
+  - Layout de destino:
+    - Origem:
+      - `/Volumes/NEXIS/ketter_lab/src_move_2000/file_XXXX.txt`
+    - Destino:
+      - `/Volumes/QUANTUM/ketter_lab/dst_move_2000/src_move_2000/file_XXXX.txt`
+  - Origem removida corretamente (como esperado para `mode = move`).
+
+#### 2. COPY de 2000 arquivos pequenos (NEXIS → QUANTUM, ZIP_FIRST)
+
+- Setup:
+
+  - Origem:
+    - `/Volumes/NEXIS/ketter_lab/src_2000`
+  - Destino:
+    - `/Volumes/QUANTUM/ketter_lab/dst_2000`
+  - Job:
+    - `mode: "copy"`
+    - `source_path: "/mnt/nexis/ketter_lab/src_2000"`
+    - `destination_path: "/mnt/quantum/ketter_lab/dst_2000"`
+
+- Observações principais:
+
+  - Job:
+    - `id: 3`
+    - `strategy: "ZIP_FIRST"`
+    - `status: "success"`
+    - `files_copied: 2000`
+    - `bytes_copied: 2072890`
+    - `duration_seconds ≈ 3.03`
+  - Layout de destino:
+    - Destino final:
+      - `/Volumes/QUANTUM/ketter_lab/dst_2000/src/file_XXXX.txt`
+  - Origem preservada (como esperado para `mode = copy`).
+
+#### 3. COPY de 1 arquivo grande (5 GiB) — NEXIS → QUANTUM (DIRECT)
+
+- Setup:
+
+  - Origem:
+    - `/Volumes/NEXIS/ketter_lab/src_big_01/big_05GiB.bin` (~5 GiB no teste inicial, e outro cenário com 1 GiB em `dev_data`)
+  - Destino:
+    - `/Volumes/QUANTUM/ketter_lab/dst_big_01`
+  - Job:
+    - `mode: "copy"`
+    - `source_path: "/mnt/nexis/ketter_lab/src_big_01"`
+    - `destination_path: "/mnt/quantum/ketter_lab/dst_big_01"`
+
+- Observações principais (job real em `dev_data` com 1 GiB):
+
+  - Job:
+    - `id: 7`
+    - `strategy: "DIRECT"`
+    - `status: "success"`
+    - `files_copied: 1`
+    - `bytes_copied: 1073741824`
+    - `duration_seconds ≈ 4.63`
+  - Layout de destino (caso `dev_data`):
+    - Origem:
+      - `dev_data/src_big_01/big_01GiB.bin`
+    - Destino:
+      - `dev_data/dst_big_01/big_01GiB.bin`
+    - Ou seja: sem subpasta `src_big_01` no destino.
+
+---
+
+### 4. Cenário misto (sessão grande + muitos arquivos pequenos)
+
+- Setup:
+
+  - Origem:
+    - Base: `/Volumes/NEXIS/ketter_lab/src_mix_01`
+    - Arquivo grande:
+      - `/Volumes/NEXIS/ketter_lab/src_mix_01/session_2GiB.bin`
+    - Áudio pequeno:
+      - `/Volumes/NEXIS/ketter_lab/src_mix_01/audio/clip_XXXX.wav` (2000 arquivos pequenos)
+  - Copy:
+    - `destination_path: "/mnt/quantum/ketter_lab/dst_mix_copy_01"`
+    - Job `id: 3` (Lab mix)
+    - `mode: "copy"`
+  - Move:
+    - `destination_path: "/mnt/quantum/ketter_lab/dst_mix_move_01"`
+    - Job `id: 4`
+    - `mode: "move"`
+
+- Observações principais:
+
+  - COPY (`id: 3`):
+    - `strategy: "ZIP_FIRST"`
+    - `status: "success"`
+    - `files_copied: 2001`
+    - `bytes_copied ≈ 2.0 GiB`
+    - `duration_seconds ≈ 27.29`
+    - Layout destino:
+      - `/Volumes/QUANTUM/ketter_lab/dst_mix_copy_01/src_mix_01/session_2GiB.bin`
+      - `/Volumes/QUANTUM/ketter_lab/dst_mix_copy_01/src_mix_01/audio/clip_XXXX.wav`
+  - MOVE (`id: 4`):
+    - `strategy: "ZIP_FIRST"`
+    - `status: "success"`
+    - `files_copied: 2001`
+    - `bytes_copied ≈ 2.0 GiB`
+    - `duration_seconds ≈ 28.19`
+    - Origem removida:
+      - `/Volumes/NEXIS/ketter_lab/src_mix_01` não existe após o job.
+    - Layout destino:
+      - `/Volumes/QUANTUM/ketter_lab/dst_mix_move_01/src_mix_01/...` (estrutura preservada)
+
+---
+
+### 5. Stats e filtros da API
+
+Foram validados os endpoints:
+
+- `GET /stats/jobs-history?limit=10`
+- Filtros:
+  - `mode=copy&status=success`
+  - `strategy=ZIP_FIRST`
+  - `strategy=DIRECT`
+  - `limit=5` com projeção parcial via `jq`
+
+Exemplo de último snapshot relevante:
+
+- Jobs com sucesso (resumido):
+
+  - Pequenos (ZIP_FIRST):
+    - `id=5` → `src_small_01` → `duration ≈ 1.30s`, `files_copied=2000`
+    - `id=6` → `src_small_02` → `duration ≈ 2.35s`, `files_copied=2000`
+  - Mistos (ZIP_FIRST):
+    - `id=3` e `id=4` → `src_mix_01` → `duration ≈ 27–28s`, `files_copied=2001`
+  - Grandes (DIRECT):
+    - `id=7` → `src_big_01` → `duration ≈ 4.63s`, `files_copied=1`, `bytes_copied=1 GiB`
+
+Conclusão:
+
+- A heurística de seleção de estratégia está funcionando como esperado:
+  - Muitos arquivos pequenos → `ZIP_FIRST` é consistente e bem mais eficiente.
+  - Poucos arquivos grandes → `DIRECT` é escolhido e entrega tempo coerente.
+- O endpoint `/stats/jobs-history` já fornece uma visão útil de:
+  - Tempo por job
+  - Estratégia adotada
+  - Volume de arquivos e bytes
+  - Filtros por `mode`, `status`, `strategy`
+
+---
+
+### Observação importante (contrato de layout)
+
+Durante o Lab04 foi identificado um comportamento inconsistente do layout de destino entre as estratégias:
+
+- Estratégia `ZIP_FIRST`:
+  - Para diretórios, o destino inclui o `basename(source_path)` como subpasta:
+    - Exemplo:
+      - Source: `/mnt/nexis/ketter_lab/src_mix_01`
+      - Destino: `/mnt/quantum/ketter_lab/dst_mix_copy_01/src_mix_01/...`
+- Estratégia `DIRECT`:
+  - Para diretórios, o destino **não** inclui o `basename(source_path)`:
+    - Exemplo:
+      - Source (dev_data): `dev_data/src_big_01/big_01GiB.bin`
+      - Destino: `dev_data/dst_big_01/big_01GiB.bin`
+      - Esperado para consistência de contrato: `dev_data/dst_big_01/src_big_01/big_01GiB.bin`
+
+Isso significa que, hoje:
+
+- O layout de destino não é invariável em relação à estratégia de transferência.
+- O operador/consumidor do Ketter precisa conhecer detalhes internos da estratégia (`ZIP_FIRST` vs `DIRECT`) para saber onde exatamente o conteúdo vai aparecer, o que é indesejável.
+
+---
+
+### TODO — Unificar layout entre DIRECT e ZIP_FIRST
+
+Para evitar surpresas em produção (Nexis/Quantum) e manter o contrato de API limpo, foi registrado o seguinte TODO de arquitetura:
+
+> Unificar layout de destino entre DIRECT e ZIP_FIRST: sempre `dest/<basename(source)>/...` para diretórios.
+
+Regras propostas:
+
+1. Se `source_path` for um **diretório**:
+   - Layout canônico:
+     - `destination_root = destination_path / basename(source_path)`
+   - Todas as estratégias (`DIRECT`, `ZIP_FIRST`, futuras) devem escrever a árvore a partir de `destination_root`.
+   - Exemplos esperados:
+     - `/mnt/nexis/ketter_lab/src_small_01` → `/mnt/quantum/ketter_lab/dst_small_01/src_small_01/...`
+     - `/mnt/nexis/ketter_lab/src_big_01` → `/mnt/quantum/ketter_lab/dst_big_01/src_big_01/big_XX.bin`
+     - `/mnt/nexis/ketter_lab/src_mix_01` → `/mnt/quantum/ketter_lab/dst_mix_copy_01/src_mix_01/...`
+2. Se `source_path` for um **arquivo único**:
+   - Layout canônico:
+     - `destination_root = destination_path`
+     - Arquivo em:
+       - `destination_path / basename(source_path)`
+   - Exemplo:
+     - `/mnt/nexis/INGEST/clip_0001.mov` → `/mnt/quantum/INGEST_STG/clip_0001.mov`
+
+Impacto:
+
+- O comportamento atual do ZIP_FIRST já está próximo do contrato desejado (usa o `basename` da pasta).
+- A principal mudança será alinhar o caminho DIRECT para respeitar o mesmo padrão para diretórios, garantindo que a escolha da estratégia não afete o layout final.
+
+EOF
+
+cat >> docs/mvp_3.0.md << 'EOF'
+
+## Lab05 — Casos de erro (paths inválidos, permissão, espaço em disco)
+
+### Objetivo
+
+Validar o comportamento do engine e da API em cenários de erro, garantindo que:
+
+1. Jobs com problemas previsíveis **não** fiquem pendurados em `running` indefinidamente.
+2. `status` seja marcado corretamente como `"failed"`.
+3. Eventos (`job_events`) registrem mensagens úteis (ex.: `source_not_found`, `permission_denied`, etc.).
+4. Não haja efeitos colaterais perigosos:
+   - Nenhum arquivo parcialmente copiado/movido em paths inesperados.
+   - Origem não alterada em cenários de erro de `copy`.
+5. A API de stats (`/stats/jobs-history`) reflita esses jobs com falha, permitindo análise posterior.
+
+### Escopo deste Lab
+
+Nesta iteração, o foco é:
+
+1. **Fonte inexistente**  
+   - `source_path` aponta para um diretório que não existe.
+   - Esperado: falha rápida, sem criar estrutura de destino.
+
+2. **Destino sem permissão para escrita (read-only)**  
+   - Job tentando escrever em um mount configurado como somente leitura.
+   - Esperado: falha com erro de permissão, sem arquivos parcialmente escritos.
+
+3. **Erros genéricos de I/O (pré-validação)**  
+   - Garantir que qualquer exceção de I/O antes/ durante a transferência resulte em:
+     - `status = "failed"`
+     - mensagem de erro registrada em `events`
+     - nenhuma alteração inesperada na origem.
+
+**Obs.:** O teste de “disco cheio” real será tratado em um Lab dedicado (provável Lab06), com volume limitado/simulado. Aqui, o foco é validar o *tratamento* de erro, não esgotar fisicamente o disco da máquina do operador.
+
+### TODO Lab05
+
+- [ ] Executar cenários:
+  - [ ] L05-01: `source_path` inexistente (copy).
+  - [ ] L05-02: `destination_path` em volume read-only.
+  - [ ] L05-03: validar resposta da API (`jobs/{id}/detail`, `stats/jobs-history`) para jobs com falha.
+- [ ] Registrar, para cada cenário:
+  - `id`, `mode`, `strategy`, `status`
+  - mensagens em `events`
+  - layout real observado em disco (se houver).
+- [ ] A partir dos resultados, decidir:
+  - Naming padronizado para tipos de erro (ex.: `source_not_found`, `dest_permission_denied`, `io_error`).
+  - Ajustes de mapeamento de exceções → eventos.
