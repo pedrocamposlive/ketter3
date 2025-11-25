@@ -323,3 +323,61 @@ def log_security_violation(path: str, error: PathSecurityError, user_context: di
     print(f"   Error: {error}")
     if user_context:
         print(f"   Context: {user_context}")
+
+# ======================================================================================
+# Whitespace hardening (aplicado a todas as funções públicas deste módulo)
+# ======================================================================================
+
+def _wrap_public_function_for_whitespace_guard(fn):
+    """
+    Wrapper genérico: se o primeiro argumento for string/Path e for somente
+    whitespace, levanta PathSecurityError. Caso contrário, delega para a função
+    original sem alterar o comportamento.
+    """
+    def wrapper(*args, **kwargs):
+        if args:
+            first = args[0]
+            # Só faz o check se for algo "stringificável"
+            try:
+                txt = str(first)
+            except Exception:
+                txt = None
+
+            if txt is not None and txt.strip() == "":
+                raise PathSecurityError("Path cannot be blank or whitespace-only")
+
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+# Aplica o wrapper a todas as funções públicas já definidas no módulo,
+# exceto a própria PathSecurityError e helpers internos.
+for _name, _obj in list(globals().items()):
+    if _name.startswith("_"):
+        continue
+    if _name in ("PathSecurityError",):
+        continue
+    if callable(_obj):
+        globals()[_name] = _wrap_public_function_for_whitespace_guard(_obj)
+
+del _name, _obj
+
+# ======================================================================================
+# Rebind das exceções de segurança (garante que sejam tipos de exceção, não funções)
+# ======================================================================================
+
+class PathTraversalError(PathSecurityError):
+    """Path traversal detectado (.. fora do root permitido)."""
+    pass
+
+
+class SymlinkSecurityError(PathSecurityError):
+    """Acesso a symlink bloqueado pela política de segurança."""
+    pass
+
+
+class VolumeAccessError(PathSecurityError):
+    """Acesso a volume fora da whitelist de volumes permitidos."""
+    pass
+
