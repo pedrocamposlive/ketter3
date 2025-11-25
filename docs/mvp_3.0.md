@@ -1424,3 +1424,33 @@ módulo layout + guard do engine,
 
 sem duplicar lógica em API, worker ou UI.
 
+### Lab07 — Overwrite Semantics (DIRECT vs ZIP_FIRST)
+
+Objetivo: validar a política de overwrite quando o destino já foi populado por um job anterior.
+
+Cenários cobertos:
+
+1. **ZIP_FIRST — many small files**
+   - Dataset: `dev_data/src_overwrite_zip_01` com 2000 arquivos pequenos.
+   - Estratégia esperada: `ZIP_FIRST` (decidida pelo planner).
+   - Comportamento:
+     - 1ª execução: `assert_overwrite_safe()` permite a transferência (destino ainda não existe).
+     - 2ª execução (mesmo source/dest): `assert_overwrite_safe()` lança `DestinationExistsError`.
+
+2. **DIRECT — small dir**
+   - Dataset: `dev_data/src_overwrite_direct_01` com 10 arquivos pequenos.
+   - Estratégia esperada: `DIRECT`.
+   - Comportamento:
+     - 1ª execução: `assert_overwrite_safe()` permite a transferência.
+     - 2ª execução: `DestinationExistsError` no mesmo destino.
+
+Testes automatizados:
+
+- Arquivo: `tests/test_overwrite_semantics.py`
+- Foco:
+  - Uso de `decide_strategy()` para selecionar a estratégia.
+  - Uso de `resolve_destination_layout()` para definir `final_root`.
+  - Uso de `assert_overwrite_safe()` para garantir que o segundo run falha quando o destino já foi criado.
+
+  Scripts de laboratório relacionados:
+- `scripts/lab07_overwrite_test.sh` — smoke test end-to-end via API + worker.

@@ -8,8 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from mvp_core.transfer_engine import TransferJob, TransferMode, run_transfer
-from mvp_core.transfer_engine.planner import TransferPlan, TransferStrategy
+from .models import TransferJob, TransferMode
+from .planner import TransferPlan, TransferStrategy
+from .core import run_transfer, resolve_destination_root
 
 
 @dataclass
@@ -33,7 +34,7 @@ def run_plan(plan: TransferPlan) -> ExecutionResult:
 
 def _run_direct(plan: TransferPlan) -> ExecutionResult:
     """
-    Execução simples usando a engine padrão.
+    Execução simples usando a engine padrão (DIRECT).
     """
     result = run_transfer(plan.job)
     return ExecutionResult(
@@ -64,9 +65,22 @@ def _run_zip_first(plan: TransferPlan) -> ExecutionResult:
     dest_root: Path = job.destination
     mode: TransferMode = job.mode
 
-    # Degradação de segurança: se o source não for diretório, cai para DIRECT.
+    # Degradação de segurança:
+    # se o source não for diretório, cai para DIRECT.
     if not source.is_dir():
         return _run_direct(plan)
+
+    # Semântica de overwrite (modo seguro) para diretórios:
+    # usamos a mesma lógica de destino da engine (dest/<basename(source)>).
+    dest_dir = resolve_destination_root(source, dest_root)
+    if dest_dir.exists():
+        return ExecutionResult(
+            status="failed",
+            files_copied=0,
+            bytes_copied=0,
+            error=f"Destination already exists: {dest_dir}",
+            zip_size_bytes=None,
+        )
 
     # Proteção: relações perigosas entre source e destination
     try:
@@ -92,7 +106,6 @@ def _run_zip_first(plan: TransferPlan) -> ExecutionResult:
         )
 
     # 2) destination dentro de source (ou vice-versa)
-    # Isso pode gerar loops bizarros.
     if dest_resolved.is_relative_to(source_resolved) or source_resolved.is_relative_to(dest_resolved):
         return ExecutionResult(
             status="failed",

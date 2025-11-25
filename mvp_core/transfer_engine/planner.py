@@ -1,4 +1,5 @@
 from __future__ import annotations
+from mvp_core.transfer_engine.models import TransferStats  # noqa
 
 import os
 from dataclasses import dataclass

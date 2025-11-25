@@ -1,4 +1,3 @@
-# mvp_core/transfer_engine/core.py
 from __future__ import annotations
 
 import os
@@ -14,7 +13,7 @@ from .models import (
     TransferMode,
 )
 
-# 8 MiB por chunk – razoável pra começar.
+# 8 MiB por chunk – baseline razoável.
 _DEFAULT_CHUNK_SIZE = 8 * 1024 * 1024
 
 
@@ -27,8 +26,7 @@ def run_transfer(job: TransferJob, chunk_size: int = _DEFAULT_CHUNK_SIZE) -> Tra
     - Se source for diretório:
         - faz copy/move recursivo de todo o conteúdo.
 
-    Por enquanto é uma engine síncrona, single-threaded, pensada como baseline.
-    Depois podemos plugar trio/async e heurística de zip em cima desta interface.
+    Engine síncrona, single-threaded, usada como baseline.
     """
     started_at = dt.datetime.utcnow()
     stats = TransferStats()
@@ -60,28 +58,40 @@ def run_transfer(job: TransferJob, chunk_size: int = _DEFAULT_CHUNK_SIZE) -> Tra
 
 def _validate_paths(job: TransferJob) -> None:
     source = job.source
+    destination_root = job.destination
+
     if not source.exists():
         raise FileNotFoundError(f"Source path does not exist: {source}")
 
-    # Podemos endurecer isso depois (por ex.: bloquear cópia para dentro do próprio source)
-    # ou adicionar whitelist de volumes / roots.
-    if source.resolve() == job.destination.resolve():
+    # Podemos endurecer isso depois (whitelist de volumes, etc.)
+    if source.resolve() == destination_root.resolve():
         raise ValueError("Source and destination must be different paths.")
 
 
 def _copy(job: TransferJob, stats: TransferStats, chunk_size: int) -> None:
     source = job.source
-    destination_root = job.destination
+    raw_destination_root = job.destination
+
+    # Layout unificado: diretórios vão sempre para dest/<basename(source)>
+    destination_root = resolve_destination_root(source, raw_destination_root)
+
+    # Semântica de overwrite (modo seguro):
+    # - Para diretórios: se dest/<basename(source)> já existir → falha imediata.
+    if source.is_dir() and destination_root.exists():
+        raise FileExistsError(f"Destination already exists: {destination_root}")
 
     if source.is_file():
-        # Se destino for diretório, copiar mantendo o nome.
+        # Se destino for diretório, copiar mantendo o nome; senão, trata como arquivo.
         if destination_root.is_dir():
             destination_file = destination_root / source.name
         else:
             destination_file = destination_root
 
         _copy_file(source, destination_file, stats, chunk_size)
+
     elif source.is_dir():
+        # Para diretórios, já usamos destination_root ajustado:
+        # dest/<basename(source)>/rel_path
         for file_path in _walk_files(source):
             relative = file_path.relative_to(source)
             destination_file = destination_root / relative
@@ -109,7 +119,7 @@ def _copy_file(
     """
     Cópia de arquivo por streaming, sem usar shutil.
 
-    É intencionalmente simples e síncrono. Podemos evoluir depois para:
+    Podemos evoluir para:
     - async com trio/aiofiles,
     - paralelismo por arquivo,
     - checagem de hash, etc.
@@ -150,5 +160,19 @@ def _remove_source(path: Path) -> None:
             _remove_source(child)
         path.rmdir()
 
-        
 
+def resolve_destination_root(source: Path, destination_root: Path) -> Path:
+    """
+    Define a raiz de destino *lógica* para uma transferência.
+
+    Regras:
+    - Se `source` for diretório: sempre usamos dest/<basename(source)>.
+    - Se `source` for arquivo: mantemos `dest` como está.
+
+    Essa função existe justamente para unificar o layout de destino
+    entre DIRECT (run_transfer) e ZIP_FIRST (que já guarda o basename
+    do diretório no arcname do .zip).
+    """
+    if source.is_dir():
+        return destination_root / source.name
+    return destination_root
