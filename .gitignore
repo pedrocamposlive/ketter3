@@ -29,3 +29,7 @@ dku/docs/dku_reports/
 dev_data/
 # macOS noise
 .DS_Store
+
+# Ignore Python bytecode
+__pycache__/
+*.pyc
