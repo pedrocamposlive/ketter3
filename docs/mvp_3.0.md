@@ -1454,3 +1454,349 @@ Testes automatizados:
 
   Scripts de laboratório relacionados:
 - `scripts/lab07_overwrite_test.sh` — smoke test end-to-end via API + worker.
+
+## Lab07 — Safe overwrite semantics (DIRECT vs ZIP_FIRST)
+
+O objetivo do Lab07 foi definir o comportamento de overwrite seguro para o MVP 3.0, garantindo que:
+
+- Não exista overwrite implícito em diretórios de destino.
+- A engine respeite sempre o layout canônico de destino.
+- O comportamento seja reproduzível via testes automatizados e via API.
+
+### Estratégias cobertas
+
+Foram validados dois cenários principais, refletidos em `tests/test_overwrite_semantics.py`:
+
+1. **ZIP_FIRST — muitos arquivos pequenos (equivalente aos jobs 26/27)**  
+   - `src_overwrite_zip_01` com ~2000 arquivos pequenos.  
+   - `mode=copy`.  
+   - Planner escolhe `TransferStrategy.ZIP_FIRST`.  
+   - Comportamento esperado:
+     - 1ª execução: `SUCCESS`, criando o layout de destino em `dst_overwrite_zip_01/src_overwrite_zip_01`.
+     - 2ª execução para o mesmo `destination_path`: falha com erro de destino existente (`DestinationExistsError`), sem overwrite implícito.
+
+2. **DIRECT — diretório pequeno (equivalente aos jobs 31/32)**  
+   - `src_overwrite_direct_01` com 10 arquivos pequenos.  
+   - `mode=copy`.  
+   - Planner escolhe `TransferStrategy.DIRECT`.  
+   - Comportamento esperado:
+     - 1ª execução: `SUCCESS`, criando o layout de destino em `dst_overwrite_direct_01/src_overwrite_direct_01`.
+     - 2ª execução para o mesmo `destination_path`: falha com erro de destino existente (`DestinationExistsError`), sem overwrite implícito.
+
+### Garantias de layout
+
+Tanto para DIRECT quanto para ZIP_FIRST, o layout final é resolvido através de:
+
+- `mvp_core.transfer_engine.layout.resolve_destination_layout`
+- Validação de overwrite via `assert_overwrite_safe`
+- Uso consistente de `layout.source_path` e `layout.final_root` dentro da engine.
+
+Isso garante que:
+
+- A raiz de destino usada pela engine é sempre o layout canônico (`layout.final_root`), e não o path cru vindo da API.
+- O comportamento do segundo run é previsível e alinhado com o modelo de segurança do Ketter: **sem overwrite automático em diretórios já populados**.
+
+### Cobertura de testes
+
+Os cenários acima são cobertos por:
+
+- `tests/test_overwrite_semantics.py::test_overwrite_zip_first_many_small_files_layout_semantics`
+- `tests/test_overwrite_semantics.py::test_overwrite_direct_small_dir_layout_semantics`
+
+Esses testes validam tanto:
+
+- As decisões do planner (`decide_strategy`) quanto
+- O resultado físico no filesystem (existência do layout `dst/<nome_src>/...` e erro no segundo run).
+
+## Path Security v2 — validação de paths e volumes
+
+O módulo `app/security/path_security.py` foi endurecido para garantir que todo path utilizado pelo Ketter passe por uma política de segurança consistente, cobrindo:
+
+- Normalização e validação de entrada crua.
+- Bloqueio explícito de traversal (`..`).
+- Bloqueio de symlinks por padrão.
+- Validação contra uma whitelist de volumes configurados.
+
+### Normalização de entrada (`_normalize_raw_path`)
+
+A função `_normalize_raw_path(raw: str | Path) -> str` agora:
+
+- Rejeita `None`:
+  - Lança `PathSecurityError("Path cannot be None")`.
+- Rejeita paths vazios ou somente whitespace:
+  - Converte para string (`text = str(raw)`).
+  - Se `text.strip() == ""`, lança `PathSecurityError("Path cannot be blank or whitespace-only")`.
+
+Isso evita que valores “vazios” passem para as próximas camadas e virem bugs silenciosos ou comportamentos inesperados.
+
+### Resolução e validação de roots
+
+A função `resolve_and_validate_path(raw_path: str | Path, allowed_roots: Iterable[Path]) -> Path`:
+
+1. Normaliza a entrada via `_normalize_raw_path`.
+2. Aplica `expanduser()` e `resolve()` para obter um path absoluto.
+3. Valida se o path está sob algum dos `allowed_roots`:
+   - Se `allowed_roots` estiver vazio, lança `PathSecurityError("No allowed roots configured")`.
+   - Se o path não for relativo a nenhum root permitido, lança `PathSecurityError` (ou subclasses específicas, conforme o caso de uso).
+
+Esse comportamento é a base para o controle de acesso por volume.
+
+### Exceções específicas
+
+O módulo define as seguintes exceções:
+
+- `PathSecurityError`: base genérica de erros de política de path.
+- `PathTraversalError(PathSecurityError)`: usada para bloquear tentativas de traversal com `..` (incluindo ataques com múltiplos `..` e double slash).
+- `SymlinkSecurityError(PathSecurityError)`: usada para bloquear symlinks por padrão (ex.: `os.path.islink`).
+- `VolumeAccessError(PathSecurityError)`: usada para bloquear paths fora dos volumes autorizados (ex.: `/etc`, `/root/.ssh`, outros homes, etc.).
+
+### Garantias de segurança cobertas pelos testes
+
+O arquivo `tests/test_path_security.py` cobre, entre outros, os seguintes cenários críticos:
+
+- **Traversal com `..`**:
+  - `/tmp/../../../etc/passwd`
+  - `/tmp/../../../../../../root/.ssh/id_rsa`
+  - `/tmp/safe/../../../etc/shadow`
+  - Cenário com double slash: `/tmp//../../etc/passwd`
+  - Resultado esperado: lançamento de `PathTraversalError`.
+
+- **Symlink**:
+  - Criação de symlink apontando para um arquivo real.
+  - Resultado esperado: `SymlinkSecurityError` quando o symlink é detectado e bloqueado.
+
+- **Volumes não autorizados**:
+  - Acesso a `/root/.ssh/id_rsa` ou `/etc`.
+  - Acesso a homes de outros usuários.
+  - Resultado esperado: `VolumeAccessError`.
+
+- **Branco / whitespace-only**:
+  - Strings contendo apenas espaços.
+  - Resultado esperado: `PathSecurityError` via `_normalize_raw_path`.
+
+Com isso, a suíte `tests/test_path_security.py` passa integralmente (`28 passed`), garantindo que as políticas de path, traversal, symlink e volume whitelist estão alinhadas com o modelo de segurança do MVP 3.0.
+
+## Ambiente de desenvolvimento canônico (Ketter 3.0 MVP)
+
+### Versão de Python
+
+- Python 3.11.x (instalado via Homebrew: `brew install python@3.11`)
+
+### Criação do ambiente virtual
+
+```bash
+cd /Users/pedroc.ampos/Desktop/Kettter3/ketter3
+/opt/homebrew/bin/python3.11 -m venv .venv
+source .venv/bin/activate
+python --version  # deve mostrar Python 3.11.x
+Instalação de dependências
+bash
+Copy code
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+Rodando a suíte de testes
+Sempre usar o pytest da venv:
+
+bash
+Copy code
+source .venv/bin/activate
+python -m pytest -q
+Subindo o backend local (smoke)
+bash
+Copy code
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload
+Health check:
+
+bash
+Copy code
+curl http://127.0.0.1:8000/health
+# Esperado:
+# {"status":"healthy","service":"ketter-api","version":"3.0.0", ...}
+yaml
+Copy code
+
+Se já tiver algo parecido, é só ajustar para refletir exatamente o fluxo que você acabou de validar.
+
+---
+
+## 2. Criar o `docs/release_mvp_3.0.md` (release package do backend)
+
+Esse é o documento que você manda para “homologação funcional” do backend, antes de acoplar UI/infra DKU. Sugiro criar `docs/release_mvp_3.0.md` com algo assim:
+
+```markdown
+# Ketter 3.0 — MVP Backend Release Package
+
+Versão: 3.0.0-MVP  
+Data: 2025-11-25  
+Autor: Coordenação Técnica / Backend
+
+---
+
+## 1. Visão geral
+
+Este pacote de release consolida o estado do backend Ketter 3.0 para o MVP:
+
+- API FastAPI funcional (`/health`, `/volumes`, `/transfers`, etc.)
+- Engine de transferência v3 (ZIP_FIRST / DIRECT) com semântica de overwrite definida
+- Camada de segurança de paths endurecida (`path_security.py`)
+- Suíte de testes passando (215 testes) contra SQLite de state (`sqlite:///./test_state.db`)
+
+Objetivo: base estável para:
+
+- Integração com UI (Manus / painel web)
+- Integração DKU (bootstrap, health-check, watchers)
+- Ajustes posteriores de banco (PostgreSQL em vez de SQLite local)
+
+---
+
+## 2. Stack técnica
+
+- Python: 3.11.x (Homebrew `python@3.11`)
+- Framework web: FastAPI 0.109.0
+- ASGI server: Uvicorn 0.27.0 (`[standard]`)
+- ORM: SQLAlchemy 2.0.25
+- Migrações: Alembic 1.13.1
+- Job queue: Redis + RQ 1.16.1
+- Storage state de testes: SQLite (`sqlite:///./test_state.db`)
+- Testes: pytest 7.4.4 + pytest-asyncio + pytest-cov
+
+---
+
+## 3. Pré-requisitos
+
+### Sistema operacional
+
+- macOS 14.x ou superior (ambiente de dev/test atual)
+- Acesso a Homebrew
+
+### Dependências de sistema
+
+- Python 3.11 (`brew install python@3.11`)
+- Redis (para execuções que envolvam worker)
+
+---
+
+## 4. Setup do ambiente
+
+```bash
+cd /Users/pedroc.ampos/Desktop/Kettter3/ketter3
+
+# 1. Criar venv com Python 3.11
+/opt/homebrew/bin/python3.11 -m venv .venv
+source .venv/bin/activate
+
+# 2. Atualizar pip
+python -m pip install --upgrade pip
+
+# 3. Instalar dependências
+python -m pip install -r requirements.txt
+5. Testes automatizados
+Rodar suíte completa
+bash
+Copy code
+source .venv/bin/activate
+python -m pytest -q
+Resultado esperado (MVP 3.0):
+
+215 testes passando
+
+Warnings aceitos:
+
+Deprecation de @app.on_event("startup"/"shutdown") (FastAPI)
+
+PytestReturnNotNoneWarning em scripts de integração (não bloqueantes)
+
+6. Smoke tests da API
+6.1. Subir o backend
+bash
+Copy code
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload
+Log esperado (trecho):
+
+text
+Copy code
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+Ketter 3.0 API iniciando...
+Ambiente: development
+Log Level: INFO
+INFO:     Application startup complete.
+6.2. Health check
+bash
+Copy code
+curl http://127.0.0.1:8000/health
+Exemplo de resposta:
+
+json
+Copy code
+{
+  "status": "healthy",
+  "service": "ketter-api",
+  "version": "3.0.0",
+  "timestamp": "2025-11-25T01:47:04.768712+00:00",
+  "environment": "development"
+}
+6.3. Ping básico de volumes (exemplo)
+bash
+Copy code
+curl -s http://127.0.0.1:8000/volumes | jq .
+(Detalhar aqui quando a API de volumes estiver estabilizada para MVP.)
+
+7. Segurança — Path Security & Overwrite
+7.1. Path security
+app/security/path_security.py implementa:
+
+Normalização de paths com rejeição de:
+
+None
+
+vazio / whitespace-only
+
+Resolução absoluta (resolve())
+
+Validação contra allowed_roots (whitelist)
+
+Bloqueio de:
+
+Path traversal (..)
+
+Symlinks (por padrão)
+
+Suíte dedicada em tests/test_path_security.py:
+
+28 testes passando cobrindo:
+
+Ataques com ..
+
+Acesso a /etc, /root, homes de terceiros
+
+Symlink abuse
+
+Normalização com // etc.
+
+7.2. Overwrite semantics (engine de transferência)
+Implementado em mvp_core/transfer_engine/*:
+
+Modos: DIRECT e ZIP_FIRST
+
+Lab07 cobre:
+
+Overwrite explícito de pequenos diretórios
+
+Muitas small files (caso ZIP_FIRST)
+
+Garantia de não overwrite implícito
+
+Suíte em tests/test_overwrite_semantics.py:
+
+Valida layout da pasta destino antes/depois de operações
+
+Usa timestamps de created_at para garantir comportamento previsível
+
+8. Limitações conhecidas / Próximos passos
+Banco de dados de produção ainda planejado para PostgreSQL 16 (esta release usa SQLite em dev/test).
+
+Hooks de lifecycle com @app.on_event estão marcados como deprecated nas versões recentes do FastAPI; precisamos migrar para lifespan em release futuro.
+
+Scripts de integração scripts/test_watch_mode_integration.py ainda retornam True/False em vez de usar assert (warning do pytest, não bloqueante para MVP).

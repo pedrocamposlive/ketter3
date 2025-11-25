@@ -35,3 +35,7 @@ __pycache__/
 *.pyc
 __pycache__/
 *.pyc
+
+# Local SQLite DBs
+dev_state.db
+test_state.db

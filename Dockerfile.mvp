@@ -1,50 +1,45 @@
-# ------------------------------------------------------------
-# Ketter 3.0 - Dockerfile MVP (API + Worker)
-# ------------------------------------------------------------
-# Estrutura:
-#   base   -> deps Python + código mvp_core
-#   api    -> imagem final da API (uvicorn)
-#   worker -> imagem final do worker (python -m mvp_core.worker.run)
-# ------------------------------------------------------------
-
 FROM python:3.11-slim AS base
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
-
 WORKDIR /app
 
-# Dependências de build mínimas
+# Dependências básicas do sistema (ajuste se precisar de mais libs nativas)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar dependências da aplicação
-COPY mvp_core/requirements.txt /app/mvp_core/requirements.txt
-RUN pip install --no-cache-dir -r /app/mvp_core/requirements.txt
+# Instala dependências Python a partir do requirements.txt da raiz
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copiar código da aplicação
-COPY mvp_core /app/mvp_core
+# Copia todo o código do Ketter 3 para dentro do container
+COPY . /app
 
-# ------------------------------------------------------------
-# Stage: api
-# ------------------------------------------------------------
+# =========================
+# Target: API
+# =========================
 FROM base AS api
 
-WORKDIR /app
+ENV ENVIRONMENT=lab
 
+# DATABASE_URL e REDIS_URL definitivos vêm do docker-compose,
+# mas deixamos defaults seguros para debug isolado, se subir só com `docker run`.
+ENV DATABASE_URL=sqlite:///./lab_state.db
+ENV REDIS_URL=redis://redis:6379/0
+
+# Expondo a porta interna 8000
 EXPOSE 8000
 
-# Entrypoint padrão da API (pode ser sobrescrito pelo docker-compose)
-CMD ["uvicorn", "mvp_core.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Sobe a mesma API que você usa localmente
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# ------------------------------------------------------------
-# Stage: worker
-# ------------------------------------------------------------
+# =========================
+# Target: Worker
+# =========================
 FROM base AS worker
 
-WORKDIR /app
+ENV ENVIRONMENT=lab
+ENV DATABASE_URL=sqlite:///./lab_state.db
+ENV REDIS_URL=redis://redis:6379/0
 
-# Entrypoint padrão do worker
-CMD ["python", "-m", "mvp_core.worker.run"]
+# Mesmo comando que você usa localmente, mas apontando para o Redis do compose
+CMD ["rq", "worker", "default", "--url", "redis://redis:6379/0"]

@@ -1,171 +1,88 @@
+version: "3.9"
+
 services:
-  # PostgreSQL 15 - Database principal
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16
     container_name: ketter-postgres
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ketter}
-      POSTGRES_USER: ${POSTGRES_USER:-ketter}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ketter123}
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_USER: ketter_user
+      POSTGRES_PASSWORD: ketter_pass
+      POSTGRES_DB: ketter_mvp
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ketter} -d ${POSTGRES_DB:-ketter}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+    volumes:
+      - ketter-postgres-data:/var/lib/postgresql/data
     networks:
       - ketter-network
 
-  # Redis 7 - Queue backend for RQ
   redis:
-    image: redis:7-alpine
+    image: redis:7
     container_name: ketter-redis
     restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "no"]
     volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
+      - ketter-redis-data:/data
     networks:
       - ketter-network
 
-  # FastAPI Application
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.mvp
+      target: api
     container_name: ketter-api
     restart: unless-stopped
-    ports:
-      - "${API_PORT:-8000}:8000"
     environment:
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ketter}:${POSTGRES_PASSWORD:-ketter123}@postgres:5432/${POSTGRES_DB:-ketter}
-
-      # Redis
+      ENVIRONMENT: lab
+      DATABASE_URL: postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp
       REDIS_URL: redis://redis:6379/0
-
-      # App settings
-      APP_ENV: ${APP_ENV:-development}
-
-      # CORS Settings (comma-separated origins)
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8000}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-
-      # Transfer settings
-      MAX_FILE_SIZE_GB: ${MAX_FILE_SIZE_GB:-500}
-      CHECKSUM_ALGORITHM: SHA256
-    volumes:
-      - ./app:/app/app
-      - ./tests:/app/tests
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
-      - transfer_data:/data/transfers
-      # Mac filesystem mapping - permite acesso a qualquer path do Mac
-      - /Users:/Users:cached
-      - /Volumes:/Volumes:cached
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+        condition: service_started
+    ports:
+      - "18000:8000"
+    volumes:
+      - ./dev_data:/Users/Shared/Transfers
+      - /Volumes/NEXIS:/mnt/nexis:rw
+      - /Volumes/QUANTUM:/mnt/quantum:rw
     networks:
       - ketter-network
 
-  # RQ Worker - Processamento assíncrono
   worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.mvp
+      target: worker
     container_name: ketter-worker
     restart: unless-stopped
-    command: ["/home/ketter/.local/bin/rq", "worker", "--url", "redis://redis:6379/0", "default"]
     environment:
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ketter}:${POSTGRES_PASSWORD:-ketter123}@postgres:5432/${POSTGRES_DB:-ketter}
-
-      # Redis
+      ENVIRONMENT: lab
+      DATABASE_URL: postgresql+psycopg2://ketter_user:ketter_pass@postgres:5432/ketter_mvp
       REDIS_URL: redis://redis:6379/0
-
-      # Worker settings
-      RQ_WORKER_NAME: ketter-worker-1
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-
-      # Transfer settings
-      MAX_FILE_SIZE_GB: ${MAX_FILE_SIZE_GB:-500}
-      CHECKSUM_ALGORITHM: SHA256
-    volumes:
-      - ./app:/app/app
-      - ./tests:/app/tests
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
-      - transfer_data:/data/transfers
-      # Mac filesystem mapping - permite acesso a qualquer path do Mac
-      - /Users:/Users:cached
-      - /Volumes:/Volumes:cached
+      KETTER_ZIP_THRESHOLD_FILES: 100
+      KETTER_ZIP_THRESHOLD_AVG_SIZE_BYTES: 4194304
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep '[r]q worker' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - ketter-network
-
-  # React Frontend - Operator UI
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: ketter-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
+        condition: service_started
     volumes:
-      - ./frontend/src:/app/src
-    depends_on:
-      - api
+      - ./dev_data:/Users/Shared/Transfers
+      - /Volumes/NEXIS:/mnt/nexis:rw
+      - /Volumes/QUANTUM:/mnt/quantum:rw
     networks:
       - ketter-network
 
-# Volumes persistentes
 volumes:
-  postgres_data:
-    driver: local
-    name: ketter-postgres-data
+  ketter-postgres-data:
+  ketter-redis-data:
 
-  redis_data:
-    driver: local
-    name: ketter-redis-data
-
-  transfer_data:
-    driver: local
-    name: ketter-transfer-data
-
-# Rede isolada
 networks:
   ketter-network:
     driver: bridge
-    name: ketter-network
