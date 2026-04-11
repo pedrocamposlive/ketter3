@@ -257,23 +257,35 @@ def get_folder_info(folder_path: str) -> dict:
 
 def format_settle_time(seconds: int) -> str:
     """
-    Format settle time in human-readable format.
-
+    Format settle time as human-readable string.
     Args:
         seconds: Time in seconds
-
     Returns:
-        Formatted string (e.g., "30 seconds", "1 minute", "1.5 minutes")
+        Formatted string:
+        - "30s" for < 1 minute
+        - "2m" or "2m 30s" for < 1 hour
+        - "1h" or "1h 30m" for >= 1 hour
+    Examples:
+        format_settle_time(30) → "30s"
+        format_settle_time(90) → "1m 30s"
+        format_settle_time(120) → "2m"
+        format_settle_time(3600) → "1h"
+        format_settle_time(5400) → "1h 30m"
     """
     if seconds < 60:
-        return f"{seconds} seconds"
-
-    minutes = seconds / 60.0
-    if minutes == int(minutes):
-        minute_word = "minute" if int(minutes) == 1 else "minutes"
-        return f"{int(minutes)} {minute_word}"
+        return f"{seconds}s"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        remaining_seconds = seconds % 60
+        if remaining_seconds == 0:
+            return f"{minutes}m"
+        return f"{minutes}m {remaining_seconds}s"
     else:
-        return f"{minutes} minutes"
+        hours = seconds // 3600
+        remaining_minutes = (seconds % 3600) // 60
+        if remaining_minutes == 0:
+            return f"{hours}h"
+        return f"{hours}h {remaining_minutes}m"
 
 
 def estimate_watch_duration(
